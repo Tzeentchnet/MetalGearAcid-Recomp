@@ -7,6 +7,24 @@ developed for the Killzone: Liberation recompilation.
 No game executable, generated game C, disc data, or other copyrighted game
 assets belong in this repository. You must supply your own supported USA disc.
 
+## Repository
+
+Private development repository:
+
+```text
+https://github.com/Tzeentchnet/MetalGearAcid-Recomp
+```
+
+Clone with the tested public runtime fork:
+
+```powershell
+git clone --recurse-submodules `
+  https://github.com/Tzeentchnet/MetalGearAcid-Recomp.git
+```
+
+The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
+`7980eb7`.
+
 ## Documentation
 
 - [Documentation index](docs/README.md)

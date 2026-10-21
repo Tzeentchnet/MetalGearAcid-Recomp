@@ -78,7 +78,9 @@ The next ready P0 work is:
   - Done 2026-10-21: runtime/module work and native tests committed as
     `51aa462`; codegen/import/VFPU7 work committed as `1225147`; the parent
     submodule was subsequently advanced to tested fidelity commits `abad642`
-    and `7980eb7`, and is pinned to `7980eb7`.
+    and `7980eb7`, and is pinned to `7980eb7`. The fork branch is published at
+    `Tzeentchnet/psp-recomp`; the parent is published privately at
+    `Tzeentchnet/MetalGearAcid-Recomp`.
 - [x] **T-1.2 P0** Add synthetic runtime PRX loader tests.
   - Cover PT_LOAD/BSS, every supported type-A relocation, malformed inputs,
     import patching, exports, start parameters, unload, and overlay base reuse.

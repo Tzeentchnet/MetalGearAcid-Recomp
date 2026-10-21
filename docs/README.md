@@ -4,6 +4,17 @@ This directory records reproducible technical findings from bringing
 **Metal Gear Acid (ULUS-10006 v1.00)** up on the PSP static recompilation
 framework.
 
+## Repositories
+
+- Private parent:
+  `https://github.com/Tzeentchnet/MetalGearAcid-Recomp`
+- Public maintained runtime fork:
+  `https://github.com/Tzeentchnet/psp-recomp`
+- Pinned runtime commit: `7980eb7`
+
+The parent being private does not change the evidence policy below. Game data,
+generated code, saves, logs, traces, dumps, and captures remain untracked.
+
 ## Documents
 
 - [PLAN.md](PLAN.md) - milestone roadmap, definition of done, validation

@@ -7,8 +7,9 @@ This document converts [FINDINGS.md](FINDINGS.md) into work for the upstream
 Status values:
 
 - **Local** - implemented in this worktree but not yet upstreamed.
-- **Fork commit** - committed on the local maintained fork branch, but not yet
-  pushed, reviewed, or accepted upstream.
+- **Fork commit** - committed and pushed to the public maintained
+  `Tzeentchnet/psp-recomp` `kzl` branch, but not yet reviewed or accepted by
+  the original upstream project.
 - **Proposed** - design or fidelity work still required.
 - **Game config** - should remain title-specific rather than generic runtime
   behavior.

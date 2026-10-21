@@ -5,6 +5,16 @@ is tracked in [TODO.md](TODO.md).
 
 All generated game data remains under ignored `build/` and `out/` directories.
 
+Clone the private parent with its public runtime fork:
+
+```powershell
+git clone --recurse-submodules `
+  https://github.com/Tzeentchnet/MetalGearAcid-Recomp.git
+Set-Location MetalGearAcid-Recomp
+```
+
+GitHub authentication is required for the private parent.
+
 The parent currently pins tested fork tip `7980eb7`. The relevant sequence is:
 
 - `51aa462` - runtime PRX modules and synthetic runtime tests;
