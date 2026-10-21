@@ -1,0 +1,34 @@
+# Metal Gear Acid (USA), ULUS-10006 v1.00.
+
+[disc]
+id = "ULUS10006"
+version = "1.00"
+iso_size = 201392128
+iso_sha1 = "d29eaba896be28c2575ead246bdaa3a9712929d4"
+plaintext_module_roots = [
+  "PSP_GAME/USRDIR/modules",
+  "PSP_GAME/USRDIR/stage",
+]
+
+[disc.files]
+"PSP_GAME/USRDIR/program.prx" = "5c6fe2caa1d100c9956388c5d2137edc2f77a7be"
+"PSP_GAME/SYSDIR/BOOT.BIN" = "5c6fe2caa1d100c9956388c5d2137edc2f77a7be"
+"PSP_GAME/SYSDIR/EBOOT.BIN" = "3649b68e30375f50f6f0c3bfa927f32867f95d2f"
+"PSP_GAME/PARAM.SFO" = "e203984f99adff739763a375b1dbbf09f865eb3c"
+"UMD_DATA.BIN" = "0802f5546bc27f626e3695ea7d8e39201ad783aa"
+
+[module]
+file = "PSP_GAME/USRDIR/program.prx"
+name = "mgp_main"
+base = 0x08804000
+entry = 0x0880432c
+text_size = 0x12f734
+image_size = 0x1e1800
+
+[module.start_thread]
+priority = 0x20
+stack_size = 0x40000
+attr = 0
+next_uid = 0x114
+initial_ge_list_id = 0
+argument = "disc0:/PSP_GAME/SYSDIR/EBOOT.BIN"

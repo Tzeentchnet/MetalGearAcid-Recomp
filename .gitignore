@@ -1,0 +1,37 @@
+# User-supplied game media and extracted game code.
+*.iso
+*.ISO
+*.cso
+*.CSO
+*.pbp
+*.PBP
+*.prx
+*.PRX
+
+# Local user-supplied disc folder.
+/Metal Gear Acid (USA)/
+
+# Generated recompilation and native build output.
+/build/
+/out/
+/gen/
+/memstick/
+/dispatch_dump.bin
+/edram.bin
+
+# Local reverse-engineering projects and reports containing derived code.
+*.gpr
+*.rep
+*.db
+*.log
+/.vs/
+/.vscode/
+
+# Nested build output.
+/external/psp-recomp/build/
+/external/psp-recomp/.pytest_cache/
+
+# Python caches.
+__pycache__/
+*.pyc
+.pytest_cache/

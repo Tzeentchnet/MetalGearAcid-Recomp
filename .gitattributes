@@ -1,0 +1,10 @@
+* text=auto
+*.c text eol=lf
+*.cpp text eol=lf
+*.h text eol=lf
+*.py text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.iso binary
+*.prx binary
+*.bin binary
