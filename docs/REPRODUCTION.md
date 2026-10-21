@@ -5,8 +5,13 @@ is tracked in [TODO.md](TODO.md).
 
 All generated game data remains under ignored `build/` and `out/` directories.
 
-The parent currently pins the tested fork tip `1225147`, which contains runtime
-module/test commit `51aa462` followed by codegen/import/VFPU7 commit `1225147`.
+The parent currently pins tested fork tip `7980eb7`. The relevant sequence is:
+
+- `51aa462` - runtime PRX modules and synthetic runtime tests;
+- `1225147` - runtime import patches and initial VFPU7 codegen;
+- `abad642` - UID/file fidelity, module policy, library dispatch, pad neutrality,
+  variable-import rejection, and GE immediate state; and
+- `7980eb7` - library-qualified generated imports and executable VFPU7 vectors.
 
 ## 1. Extract the verified disc
 
@@ -63,6 +68,11 @@ out/build/clang-cl/assets/vfpu/
 out/build/clang-cl/font/
 ```
 
+The parent-compiled policy in `tools/mga/module_policy.c` pins boot service
+modules by guest path, SHA-1, expected module name, and guest/HLE mode. A hash
+or name mismatch fails module load. Unlisted plaintext stage overlays remain
+guest-executed; unlisted encrypted modules are rejected.
+
 ## 4. Capture the PPSSPP entry contract
 
 Use the patched PPSSPP v1.20.4 interpreter:
@@ -80,6 +90,26 @@ $env:PSPRECOMP_TRACE_TARGET = "mga-entry"
 ```
 
 Check the values in MGA-F-004 of [FINDINGS.md](FINDINGS.md).
+
+The corresponding native smoke log must begin with:
+
+```text
+standalone module_start: uid=0x113
+create thread uid=0x114 user_main
+create thread uid=0x115 Main
+```
+
+With `SR_UIDLOG=1`, the first module sequence must also include:
+
+```text
+module loader: KCEJ_FS uid=0x119
+module loader: ZLIB uid=0x11f
+module loader: KCEJ_SOUND uid=0x12e
+module loader: mgp_stage uid=0x174
+```
+
+The raw-sector KFS open consumes file-node UID `0x171`, so the following
+`KFS_Arc` FPL is `0x172`.
 
 ## 5. Native rendering smoke tests
 
@@ -138,7 +168,94 @@ tex_nonzero=76569425
 The displayed buffer can be black during this transition; inspect the content
 buffer rather than treating that as a renderer failure.
 
-## 6. Static trace comparison
+## 6. Deterministic input profiles
+
+Validate the committed shared profiles:
+
+```powershell
+python tools\mga\padscript.py `
+  config\mga_neutral.pad `
+  config\mga_boot.pad `
+  config\mga_menu_probe.pad
+
+python -m unittest discover -s tools\tests -p "test_*.py"
+```
+
+Select the same profile for PPSSPP and native:
+
+```powershell
+$env:PSPRECOMP_PADSCRIPT = "$PWD\config\mga_neutral.pad"
+$env:SR_PADSCRIPT = "$PWD\config\mga_neutral.pad"
+```
+
+Profiles:
+
+| File | Purpose |
+|---|---|
+| `mga_neutral.pad` | Strict no-input baseline |
+| `mga_boot.pad` | Periodic START pulses for boot/logo/title advancement |
+| `mga_menu_probe.pad` | Boot pulses plus deterministic START/DOWN/UP/CROSS probes |
+
+The PPSSPP and native columns intentionally differ. PPSSPP reads vblank
+timing; native reads presentation timing. Header-only neutral scripts suppress
+native automatic input rather than falling through to the legacy periodic
+START pulse.
+
+## 7. Isolated memstick fixtures
+
+Create fresh empty roots:
+
+```powershell
+python tools\mga\memstick.py create `
+  build\mga\fixtures\empty-ppsspp --backend ppsspp
+
+python tools\mga\memstick.py create `
+  build\mga\fixtures\empty-native --backend native
+```
+
+Clone protected existing-save templates without modifying the originals:
+
+```powershell
+python tools\mga\memstick.py create `
+  build\mga\fixtures\save-ppsspp `
+  --backend ppsspp `
+  --template D:\protected\mga-ppsspp-template
+
+python tools\mga\memstick.py create `
+  build\mga\fixtures\save-native `
+  --backend native `
+  --template D:\protected\mga-native-template
+```
+
+Verify before each run:
+
+```powershell
+python tools\mga\memstick.py verify `
+  build\mga\fixtures\empty-ppsspp --backend ppsspp
+
+python tools\mga\memstick.py verify `
+  build\mga\fixtures\empty-native --backend native
+```
+
+Select the roots:
+
+```powershell
+$env:PSPRECOMP_MEMSTICK = "$PWD\build\mga\fixtures\empty-ppsspp"
+$env:SR_FSDIR = "$PWD\build\mga\fixtures\empty-native"
+```
+
+The tool refuses to overwrite an existing output path. Every run therefore
+uses an isolated clone. `.mga-fixture.json` detects accidental fixture
+mutation, but it and all save files remain protected/local.
+
+Current parent-tool test result:
+
+```text
+Ran 10 tests
+OK
+```
+
+## 8. Static trace comparison
 
 For a focused main-code comparison, build with:
 
@@ -162,7 +279,66 @@ trampoline and syscall-register writes.
 
 Reconfigure with `MGA_ENABLE_INSTRUCTION_TRACE=OFF` for the release build.
 
-## 7. Framework tests
+## 9. PPSSPP front-end reference summary
+
+After a protected interpreter run with full logging and call tracing:
+
+```powershell
+python tools\mga\ppsspp_summary.py `
+  build\mga\reference\ppsspp.log `
+  --calls build\mga\reference\calls.txt `
+  --timeout 20 `
+  --padscript config\mga_boot.pad `
+  --out docs\reference\ppsspp_frontend.json
+```
+
+The committed reduced report must identify:
+
+```text
+init:  uid 0x174, vblank 84, present 42
+title: uid 0x17c, vblank 167, present 167
+call edges: 2333
+call targets: 1119
+```
+
+See [PPSSPP_REFERENCE.md](PPSSPP_REFERENCE.md). Never commit the source log,
+call trace, memstick, or captures.
+
+## 10. Capture-free native title gate
+
+```powershell
+$env:PSP_ISO = "C:\path\to\Metal Gear Acid (USA).iso"
+$env:SR_FSDIR = "$PWD\build\mga\fixtures\empty-native"
+$env:SR_PADSCRIPT = "$PWD\config\mga_boot.pad"
+$env:SR_EXIT_AFTER_PRESENT = "600"
+$env:SR_INTERP_MISS_LOG = "$PWD\build\mga\native-title\dispatch-misses.txt"
+
+out\build\clang-cl\mga.exe --boot `
+  build\mga\gen\mga_image.bin 08804000 0880432c none --gui
+```
+
+Acceptance:
+
+```text
+exit code 0
+init  uid 0x174, allocation 0xf500
+title uid 0x17b, allocation 0x1c100
+presentation limit reached at present 600
+0 unimplemented HLE
+0 host crashes
+0 watchdogs
+0 interpreter stops
+48 unique fallback targets
+```
+
+The title log must not contain `unhandled command 0xf0` through `0xf9`.
+Nonzero `VAP` immediate drawing remains explicitly unsupported and must surface
+as a GE diagnostic if a later route uses it.
+
+Reduce the protected log with `tools\mga\native_summary.py` as documented in
+[PPSSPP_REFERENCE.md](PPSSPP_REFERENCE.md).
+
+## 11. Framework tests
 
 ### Python tests
 
@@ -178,6 +354,23 @@ Current result:
 Ran 23 tests
 OK
 ```
+
+### Executable VFPU/codegen vectors
+
+```powershell
+python external\psp-recomp\tools\tests\test_codegen_ext.py `
+  --cc=D:\Tools\msys64\ucrt64\bin\gcc.exe
+```
+
+Current result:
+
+```text
+207/207 passed
+```
+
+The VFPU7 cases execute emitted C and verify source-prefix behavior, unsigned
+negative clamp, byte/halfword packing, odd vector sizes, destination
+saturation, and destination write masks.
 
 ### Synthetic runtime PRX loader
 
@@ -205,7 +398,8 @@ make -C external\psp-recomp test-module-loader
 The fixture contains no game data. It validates two PT_LOAD segments, BSS,
 every supported type-A relocation, malformed cleanup, import patching, guest
 exports, module-start parameters, HLE-only modules, unload, and allocation-base
-reuse.
+reuse. A separate malformed fixture verifies that imported variables fail with
+full cleanup instead of being ignored.
 
 ### Interpreter syscall and hybrid callback paths
 
@@ -224,6 +418,15 @@ The synthetic instruction streams validate:
 - an interpreted callback into static guest code and its patched HLE import;
   and
 - rejection of an unknown runtime syscall code.
+
+The module-loader fixture also verifies that a guest export resolves only for
+its exact library and that a runtime syscall binding returns both the library
+and NID. Regenerated game C should contain library-qualified calls, for
+example:
+
+```text
+sr_syscall_lib(s, "kjfs", 0x93e9297f)
+```
 
 Run both standalone native runtime tests in the fork with:
 

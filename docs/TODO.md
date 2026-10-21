@@ -28,11 +28,11 @@ When completing an item:
 
 The next ready P0 work is:
 
-1. **T-1.6** separate entry-thread UID from next UID;
-2. **T-2.1** create deterministic PPSSPP/native boot input scripts;
-3. **T-1.4** expand VFPU7 coverage to executable semantic vectors;
-4. **T-1.5** carry `(library, NID)` through all dispatch paths;
-5. **T-1.7** audit PPSSPP/native UID allocation through first stage load.
+1. **T-2.7** validate empty/present/missing/existing-save states;
+2. **T-2.8** validate intro PMF video/audio and skip behavior;
+3. **T-2.9** validate keyboard/gamepad control through title menus;
+4. **T-2.10** add title/menu frame and audio acceptance checks;
+5. **T-2.11** repeat deterministic title/menu runs three times.
 
 ## Phase 0 - Reproducible boot baseline
 
@@ -77,7 +77,8 @@ The next ready P0 work is:
     implementation commit.
   - Done 2026-10-21: runtime/module work and native tests committed as
     `51aa462`; codegen/import/VFPU7 work committed as `1225147`; the parent
-    submodule is pinned to `1225147`.
+    submodule was subsequently advanced to tested fidelity commits `abad642`
+    and `7980eb7`, and is pinned to `7980eb7`.
 - [x] **T-1.2 P0** Add synthetic runtime PRX loader tests.
   - Cover PT_LOAD/BSS, every supported type-A relocation, malformed inputs,
     import patching, exports, start parameters, unload, and overlay base reuse.
@@ -94,21 +95,50 @@ The next ready P0 work is:
     preserved outer returns, guest-export recursion, callbacks into patched
     static code, and rejection of unknown runtime syscall codes. Passed through
     CMake/CTest and the fork's standalone `test-interpreter` target.
-- [ ] **T-1.4 P1** Expand VFPU7 tests from emitted-text checks to executable
+- [x] **T-1.4 P1** Expand VFPU7 tests from emitted-text checks to executable
   semantic vectors.
   - Cover prefix behavior, clamping, odd vector sizes, packing, masks, and
     saturation.
-- [ ] **T-1.5 P1** Carry `(library, NID)` through generated imports, runtime
+  - Done 2026-10-21: the compile-and-run VFPU harness now covers all four
+    packed conversions, negative unsigned clamp, signed byte/halfword
+    extraction, pair/triple/quad packing, source swizzle, destination
+    saturation, and destination write masks. All 207 semantic vectors pass
+    with MinGW GCC.
+- [x] **T-1.5 P1** Carry `(library, NID)` through generated imports, runtime
   syscall bindings, guest export lookup, and diagnostics.
-- [ ] **T-1.6 P0** Add separate standalone-boot fields for existing entry
+  - Done 2026-10-21: generated static imports call `sr_syscall_lib`, runtime
+    syscall bindings return the original library, guest export lookup requires
+    an exact library when supplied, NID logs/unknown diagnostics retain the
+    library, and compatibility wrappers remain for NID-only callers. Synthetic
+    collision checks and the present-600 title gate pass.
+- [x] **T-1.6 P0** Add separate standalone-boot fields for existing entry
   thread UID and next allocatable UID.
   - Oracle: current `0x113`, next `0x114`.
-- [ ] **T-1.7 P1** Audit PPSSPP/native UID sequences through first stage load
+  - Done 2026-10-21: added `SR_MODULE_START_UID` independently from
+    `SR_BOOT_NEXT_UID`; protected smoke now reports `module_start=0x113`,
+    `user_main=0x114`, and `Main=0x115` while preserving the measured frame-60
+    rendering checkpoint.
+- [x] **T-1.7 P1** Audit PPSSPP/native UID sequences through first stage load
   and model kernel objects that affect game-visible handles.
-- [ ] **T-1.8 P1** Replace the `sce*` module-name heuristic with a per-title
+  - Done 2026-10-21: PPSSPP allocates a hidden file-node UID for each
+    `sceIoOpen`, including module files and the raw KFS archive. Associating
+    that UID with the runtime `Fd` aligns every checked handle through the
+    first stage: entry `0x113`, user main `0x114`, Main `0x115`, KJFS `0x119`,
+    ZLIB `0x11f`, sound `0x12e`, KFS_Arc FPL `0x172`, and stage `0x174`.
+    Frame-60 metrics remain unchanged.
+- [x] **T-1.8 P1** Replace the `sce*` module-name heuristic with a per-title
   module policy keyed by path, name, and hash.
-- [ ] **T-1.9 P1** Implement variable imports or reject them during module load
+  - Done 2026-10-21: added a generic policy table API and an MGA-owned table
+    with exact SHA-1/path/name modes. Configured encrypted modules require HLE,
+    unlisted encrypted modules fail, explicit rejects fail, configured
+    plaintext names are verified, and unlisted plaintext stage overlays
+    default to guest execution. Synthetic mismatch/rejection tests and the
+    present-600 title gate pass.
+- [x] **T-1.9 P1** Implement variable imports or reject them during module load
   with library/NID/module context.
+  - Done 2026-10-21: the loader rejects any nonzero imported-variable count
+    with library, module, and count diagnostics; synthetic coverage verifies
+    the partially registered module and allocation are cleaned up.
 - [ ] **T-1.10 P1** Split PRX parsing/relocation from module-manager kernel
   policy.
 - [ ] **T-1.11 P1** Add protected Metal Gear Acid and Killzone regression
@@ -118,20 +148,46 @@ The next ready P0 work is:
 
 ## Phase 2 - Deterministic front end
 
-- [ ] **T-2.1 P0** Create deterministic PPSSPP and native input scripts for
+- [x] **T-2.1 P0** Create deterministic PPSSPP and native input scripts for
   boot, logo skip where supported, title idle, and menu navigation.
-- [ ] **T-2.2 P0** Define isolated empty and existing-save memstick fixtures.
+  - Done 2026-10-21: added shared v3 neutral, boot-advance, and menu-probe
+    profiles with independent PPSSPP-vblank and native-presentation timing;
+    added a strict validator and five unit tests; verified the neutral profile
+    is accepted by both backends and suppresses native automatic input while
+    preserving the frame-60 checkpoint.
+- [x] **T-2.2 P0** Define isolated empty and existing-save memstick fixtures.
   - Fixtures remain protected/local; commit only generators or metadata.
-- [ ] **T-2.3 P0** Record PPSSPP reference checkpoints from boot through title
+  - Done 2026-10-21: added a source-only fixture creator/verifier for PPSSPP
+    (`PSP/SAVEDATA`) and native (`ms0/PSP/SAVEDATA`) roots, deterministic
+    SHA-256 inventories, protected template cloning, and five unit tests.
+    Both backends booted successfully with generated empty roots and the
+    neutral pad profile; native retained the frame-60 checkpoint.
+- [x] **T-2.3 P0** Record PPSSPP reference checkpoints from boot through title
   idle.
   - Include call traces, module timeline, frame metrics, audio/movie events,
     and expected wall/emulated timing.
-- [ ] **T-2.4 P0** Run native boot without forced frame-capture exit and reach
+  - Done 2026-10-21: a protected 20-second PPSSPP interpreter run with the
+    empty fixture and boot profile reaches `init` at vblank 84/present 42 and
+    `title` at vblank/present 167. Reduced metadata records 2,333 call edges,
+    1,119 targets, 61 HLE functions, controller/audio counts, zero MPEG calls,
+    and classified diagnostics; protected logs/traces remain ignored.
+- [x] **T-2.4 P0** Run native boot without forced frame-capture exit and reach
   a stable title/menu state.
-- [ ] **T-2.5 P0** Fix every unimplemented HLE or dispatch failure encountered
+  - Done 2026-10-21: the empty native fixture plus `mga_boot.pad` reaches init
+    and title overlays, remains stable through capture-free present 600, and
+    exits through `SR_EXIT_AFTER_PRESENT` with code 0.
+- [x] **T-2.5 P0** Fix every unimplemented HLE or dispatch failure encountered
   before title.
-- [ ] **T-2.6 P1** Classify GE commands `0xf0-0xf9` against PPSSPP and add
+  - Done 2026-10-21: the present-600 gate reports zero unimplemented HLEs,
+    host crashes, watchdogs, and interpreter stops. Forty-eight expected
+    interpreter fallback targets remain for T-3 native-module conversion.
+- [x] **T-2.6 P1** Classify GE commands `0xf0-0xf9` against PPSSPP and add
   focused tests for any required behavior.
+  - Done 2026-10-21: PPSSPP identifies the range as immediate-vertex state
+    (`VSCX` through `VSCV`), with `VAP` submitting a vertex. The runtime now
+    stores all ten words and reports only nonzero unsupported `VAP` draws.
+    Metal Gear Acid writes zero initialization values through present 600, so
+    the title gate has no remaining `0xf0-0xf9` warnings.
 - [ ] **T-2.7 P1** Validate memory-stick message behavior for empty, present,
   missing, and existing-save states.
 - [ ] **T-2.8 P1** Validate intro PMF video/audio, skip input, teardown, and

@@ -162,7 +162,10 @@ if(MGA_RUNTIME_ONLY)
   return()
 endif()
 
-add_executable(mga_driver ${RT}/driver.c ${MGA_RUNTIME_SRCS})
+add_executable(mga_driver
+  ${RT}/driver.c
+  tools/mga/module_policy.c
+  ${MGA_RUNTIME_SRCS})
 target_include_directories(mga_driver PRIVATE "${RT}")
 target_compile_features(mga_driver PRIVATE cxx_std_17)
 target_compile_options(mga_driver PRIVATE ${MGA_FP_FLAGS})
@@ -173,9 +176,11 @@ target_compile_definitions(mga_driver PRIVATE
   SR_EXPECTED_ISO_SHA1="d29eaba896be28c2575ead246bdaa3a9712929d4"
   SR_BOOT_ARG="disc0:/PSP_GAME/SYSDIR/EBOOT.BIN"
   SR_BOOT_NEXT_UID=0x114u
+  SR_MODULE_START_UID=0x113u
   SR_MODULE_START_PRIORITY=0x20u
   SR_MODULE_START_STACK_SIZE=0x40000u
   SR_MODULE_START_ATTR=0u
+  SR_MODULE_POLICY_INIT=sr_mga_register_module_policy
   SR_INTERP_DEFAULT_MAX_STEPS=100000000ULL
   SR_INITIAL_GE_LIST_ID=0)
 if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
@@ -204,7 +209,8 @@ add_custom_command(TARGET mga_driver POST_BUILD
 include(CTest)
 if(BUILD_TESTING)
   add_executable(mga_module_loader_tests EXCLUDE_FROM_ALL
-    ${PSP_RECOMP_DIR}/tools/tests/module_loader_test.c)
+    ${PSP_RECOMP_DIR}/tools/tests/module_loader_test.c
+    ${SAVEDATA_CRYPTO}/SHA1.c)
   target_include_directories(mga_module_loader_tests PRIVATE "${RT}")
   target_compile_definitions(mga_module_loader_tests PRIVATE
     _CRT_SECURE_NO_WARNINGS)

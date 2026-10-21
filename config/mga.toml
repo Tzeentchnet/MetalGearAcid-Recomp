@@ -26,6 +26,7 @@ text_size = 0x12f734
 image_size = 0x1e1800
 
 [module.start_thread]
+uid = 0x113
 priority = 0x20
 stack_size = 0x40000
 attr = 0

@@ -86,6 +86,10 @@ executable and opens controller setup. Current interpreted modules use a
 100-million-instruction per-call safety cap; override it for diagnostics with
 `SR_INTERP_MAX_STEPS`.
 
+For deterministic tests, use the shared profiles in `config/` and create
+isolated PPSSPP/native memstick roots with `tools\mga\memstick.py`; see
+[REPRODUCTION.md](docs/REPRODUCTION.md).
+
 ## License
 
 The recompiler/runtime is derived in part from PPSSPP and is

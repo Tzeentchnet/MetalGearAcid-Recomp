@@ -95,10 +95,18 @@ The `0x40000` start stack is the PSP default when the PRX does not export a
 The framework needed compile-time game boot configuration for the argument,
 next UID, priority, stack size, attributes, title, and initial GE list ID.
 
-Remaining fidelity issue: the generic standalone scheduler allocates its entry
-thread from the next-UID counter, while the oracle distinguishes the existing
-entry-thread UID (`0x113`) from the next allocatable UID (`0x114`). These values
-should be independently configurable upstream.
+The standalone scheduler now accepts the existing entry-thread UID separately
+from the next allocatable UID. A protected smoke run matches the oracle's
+initial sequence:
+
+```text
+module_start = 0x113
+user_main    = 0x114
+Main         = 0x115
+```
+
+Later UIDs still drift because PPSSPP allocates internal objects that the native
+runtime does not model; see MGA-F-025.
 
 ### MGA-F-005 - Boot enters two game-created threads before `Main`
 
@@ -202,6 +210,11 @@ The implementation must apply source prefixes before interpreting lane bits,
 pack bytes or halfwords with the PSP shifts and signed clamping behavior, then
 apply the destination prefix to the packed result.
 
+The executable semantic harness now validates these operations rather than
+only checking emitted C text. It covers negative clamp, byte/halfword
+extraction, odd vector sizes, source swizzle, destination saturation, and
+destination write masks; all 207 current VFPU/codegen vectors pass.
+
 ### MGA-F-011 - Import-table membership is authoritative, not section name
 
 Metal Gear Acid places private-library import stubs in `.text`, including:
@@ -276,31 +289,46 @@ The scheduler therefore needs a GP per TCB:
 
 Without this, service and stage threads address the wrong small-data region.
 
-### MGA-F-015 - Encrypted and HLE-replaced modules need an explicit policy
+### MGA-F-015 - Encrypted and HLE-replaced modules use explicit policy
 
 Encrypted Sony modules such as codec and SAS PRXs cannot be executed by the
-plaintext loader. The current local policy creates an HLE-only module object.
+plaintext loader. The runtime creates an HLE-only module object only when the parent policy
+selects it.
 
 Some plaintext Sony modules, notably ATRAC and MPEG, still need their PSP
 allocation footprint but should use native HLE behavior instead of starting
 their guest implementation.
 
-The current name-prefix heuristic (`sce*`) is suitable for bring-up, but the
-upstream design should use a per-title module policy keyed by path, module
-name, and hash. It should explicitly choose:
+The `sce*` name-prefix heuristic has been removed. The parent now registers a
+table keyed by exact guest path and SHA-1, with an expected plaintext module
+name where available. Each entry explicitly chooses:
 
 - guest execution;
 - native HLE replacement;
 - decrypt and execute; or
 - unsupported with an error.
 
-### MGA-F-016 - Variable imports remain unimplemented
+Policy behavior:
+
+- configured encrypted modules must select HLE;
+- unlisted encrypted modules fail;
+- configured plaintext module names must match after relocation;
+- explicit reject entries fail before execution; and
+- unlisted plaintext modules default to guest execution, allowing stage
+  overlays without a 40-entry table.
+
+Synthetic tests cover HLE selection, hash/path miss, module-name mismatch, and
+unlisted encrypted rejection. The protected title gate verifies the MGA table.
+
+### MGA-F-016 - Variable imports are explicitly unsupported
 
 The loader records function imports and exports. It observes variable counts
 but does not currently relocate or bind imported variables.
 
-Boot through the KONAMI logo did not require a variable import, but this is a
-known module-manager gap and must fail explicitly if a title reaches one.
+Boot through the title gate does not require a variable import. A module with
+any imported variable now fails during load with its module, library, and
+count, and the loader removes partial exports, UID state, and allocation.
+Silent variable-import success is therefore no longer possible.
 
 ## HLE, rendering, and packaging
 
@@ -366,14 +394,24 @@ Upstream should support:
 - hot-module static recompilation; and
 - a lower bounded limit for unknown targets.
 
-### MGA-F-022 - GE commands `0xf0-0xf9` remain unhandled but are not the first blocker
+### MGA-F-022 - GE commands `0xf0-0xf9` are immediate-vertex state
 
-The software GE path reports commands `0xf0` through `0xf9` once each. Despite
-that, the game renders its memory-stick message and KONAMI logo.
+PPSSPP defines:
 
-These commands require semantic classification before being implemented. They
-must not be treated as the explanation for every later visual issue merely
-because they appear in the log.
+| Opcode | State |
+|---:|---|
+| `0xf0-0xf2` | Immediate screen X/Y/Z |
+| `0xf3-0xf5` | Immediate texture S/T/Q |
+| `0xf6` | Immediate primary RGB |
+| `0xf7` | Immediate alpha and primitive submission (`VAP`) |
+| `0xf8` | Immediate fog coefficient |
+| `0xf9` | Immediate secondary RGB |
+
+The runtime now stores all ten state words. Metal Gear Acid writes only zero
+initialization values on the validated boot/title route, and the present-600
+gate no longer reports them as unknown. A nonzero `VAP` still reports an
+explicit unsupported immediate draw until full immediate-primitive assembly is
+implemented.
 
 ### MGA-F-023 - Frame capture must distinguish displayed and rendered buffers
 
@@ -415,23 +453,34 @@ This proves:
 It does not prove title-screen completion, input correctness, saves, movies,
 missions, or full-game stability.
 
-### MGA-F-025 - UID allocation is observably different from PPSSPP
+### MGA-F-025 - File nodes account for the observed UID drift
 
-Examples:
+The entry-thread split in MGA-F-004 fixed the first three handles, but dynamic
+module and stage UIDs initially remained low.
 
-| Object | PPSSPP | Current native run |
+A paired PPSSPP/native audit found that every successful `sceIoOpen` consumes a
+kernel UID for PPSSPP's hidden file node even though the game receives a small
+integer file descriptor. This includes:
+
+- each PRX opened before `sceKernelLoadModuleByID`; and
+- the raw-sector KFS archive opened before the `KFS_Arc` FPL.
+
+Associating one UID with each native `Fd` and releasing its registry entry on
+close aligns the audited sequence:
+
+| Object | PPSSPP | Native |
 |---|---:|---:|
-| Entry thread | `0x113` | `0x114` |
-| ZLIB module | `0x11f` | `0x11e` |
-| First stage module | `0x174` | `0x16a` |
+| Entry thread | `0x113` | `0x113` |
+| `user_main` | `0x114` | `0x114` |
+| `Main` | `0x115` | `0x115` |
+| KJFS module | `0x119` | `0x119` |
+| ZLIB module | `0x11f` | `0x11f` |
+| Sound module | `0x12e` | `0x12e` |
+| `KFS_Arc` FPL | `0x172` | `0x172` |
+| First stage module | `0x174` | `0x174` |
 
-PPSSPP consumes UIDs for internal module, IO, and helper objects that the
-native runtime does not yet model. Metal Gear Acid still reaches visible
-content, but UID drift can break titles that index their own tables by UID or
-compare handles.
-
-The framework needs a deliberate UID-fidelity policy rather than incidental
-matching.
+The raw UID diagnostic now logs untyped allocations as well as later type
+registration, making future drift attributable instead of invisible.
 
 ### MGA-F-026 - `sr_ba_free` returns one on success
 
@@ -448,3 +497,118 @@ Module unload regression coverage must assert both:
 A synthetic two-segment PRX test now exercises this contract together with BSS,
 all supported type-A relocation forms, malformed cleanup, imports, exports,
 module-start parameters, and HLE-only modules.
+
+### MGA-F-027 - One v3 pad profile can drive both timing domains
+
+The patched PPSSPP input hook advances events by PPSSPP vblank count. The
+native runtime can advance the same logical event by presentation count.
+
+The shared v3 format records both:
+
+```text
+<ppsspp-vblank> <runtime-present> <hex-mask> <ppsspp-width> <runtime-width>
+```
+
+Three source-only profiles now exist:
+
+- `mga_neutral.pad` - no scripted input;
+- `mga_boot.pad` - bounded START pulses for logo/title advancement; and
+- `mga_menu_probe.pad` - the boot pulses followed by START, DOWN, UP, and
+  CROSS probes.
+
+A header-only script must be authoritative. Previously the native parser saw
+zero events and fell through to its automatic START pulse, so "neutral" was
+not neutral. Script presence now suppresses automatic input even with zero
+events.
+
+The profiles contain only timing and PSP button masks. They contain no game
+data. Their exact title/menu calibration remains part of the deterministic
+front-end reference work.
+
+### MGA-F-028 - PPSSPP and native memstick roots require different layouts
+
+The patched PPSSPP override expects:
+
+```text
+<root>/PSP/SAVEDATA/
+```
+
+The native `SR_FSDIR` VFS preserves the PSP device name and expects:
+
+```text
+<root>/ms0/PSP/SAVEDATA/
+```
+
+The source-only fixture tool creates either layout, or clones a protected
+existing-save template into a new path. It writes a local manifest containing
+only backend/profile metadata and a sorted relative-path, size, and SHA-256
+inventory. It never records the protected template's absolute path.
+
+Both generated empty layouts boot successfully with the shared neutral input
+profile. Save payloads and fixture manifests remain under ignored `build/` or
+another protected local directory.
+
+### MGA-F-029 - The deterministic PPSSPP route reaches the title overlay
+
+A 20-second PPSSPP interpreter run with an empty memstick and
+`mga_boot.pad` reaches:
+
+| Stage | UID | Allocation | Vblank | Presents |
+|---|---:|---:|---:|---:|
+| `init` | `0x174` | `0xf500` | `84` | `42` |
+| `title` | `0x17c` | `0x1c100` | `167` | `167` |
+
+The title allocation and GP identify `stage/title/title.prx`. No later stage
+starts during the capture.
+
+The call trace contains 2,333 unique edges and 1,119 targets. The route reaches
+61 HLE functions and active audio output but no MPEG calls. This is the
+protected oracle gate for native title-front-end work; detailed reduced
+metadata is in `PPSSPP_REFERENCE.md` and
+`reference/ppsspp_frontend.json`.
+
+### MGA-F-030 - Native reaches a stable title gate without capture exit
+
+Using the empty native fixture, `mga_boot.pad`, and
+`SR_EXIT_AFTER_PRESENT=600`, the native runtime loads:
+
+| Stage | UID | Allocation | GP |
+|---|---:|---:|---:|
+| `init` | `0x174` | `0xf500` | `0x09b5af20` |
+| `title` | `0x17b` | `0x1c100` | `0x09b67b20` |
+
+It exits at present 600 with no unimplemented HLE, host crash, watchdog, or
+interpreter stop. The dispatch-miss log contains 48 unique expected dynamic
+module targets.
+
+PPSSPP gives the title module UID `0x17c`; native is one lower after the
+correctly aligned first stage. This narrows the next UID audit to object
+creation between init unload and title load.
+
+### MGA-F-031 - Import identity must retain the library name
+
+PSP linkage is `(library, NID)`, not NID alone. The initial runtime preserved
+the library while patching a stub, then discarded it when resolving the
+runtime syscall and guest export.
+
+The dispatch path now retains the pair through:
+
+- generated static import calls;
+- runtime syscall-code bindings;
+- guest export lookup;
+- NID logs; and
+- unknown/permissive diagnostics.
+
+Guest export lookup rejects the same NID under a different library. Built-in
+HLE registration remains a global NID table for compatibility; generated and
+runtime calls still carry the requested library so that registry can be
+namespaced later without another codegen format change.
+
+Regeneration confirms examples such as:
+
+```text
+sr_syscall_lib(s, "kjfs", 0x93e9297f)
+sr_syscall_lib(s, "IoFileMgrForUser", 0x810c4bc3)
+```
+
+The library-qualified build retains the capture-free present-600 title gate.

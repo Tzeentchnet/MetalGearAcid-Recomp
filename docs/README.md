@@ -18,6 +18,8 @@ framework.
   regression coverage.
 - [REPRODUCTION.md](REPRODUCTION.md) - extraction, code generation, PPSSPP
   oracle capture, build, trace comparison, and rendering smoke-test commands.
+- [PPSSPP_REFERENCE.md](PPSSPP_REFERENCE.md) - deterministic protected-oracle
+  front-end checkpoints and reduced non-game metrics.
 
 ## Evidence policy
 

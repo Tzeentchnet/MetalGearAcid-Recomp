@@ -1,0 +1,32 @@
+{
+  "dispatch_misses": 48,
+  "failures": {
+    "host_crashes": 0,
+    "interpreter_stops": 0,
+    "unimplemented_hle": 0,
+    "watchdogs": 0
+  },
+  "padscript": "mga_boot.pad",
+  "present_limit": 600,
+  "reached_present": 600,
+  "schema": "mga-native-reference-v1",
+  "source_log": "stderr.log",
+  "stage_checkpoints": [
+    {
+      "allocation": "0xf500",
+      "base": "0x09b43c00",
+      "entry": "0x09b43c34",
+      "gp": "0x09b5af20",
+      "name": "init",
+      "uid": "0x174"
+    },
+    {
+      "allocation": "0x1c100",
+      "base": "0x09b43c00",
+      "entry": "0x09b43c34",
+      "gp": "0x09b67b20",
+      "name": "title",
+      "uid": "0x17b"
+    }
+  ]
+}

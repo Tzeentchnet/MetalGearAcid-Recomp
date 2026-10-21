@@ -1,0 +1,12 @@
+# psp-recomp pad script v3
+# PPSSPP vblank, native present, PSP button mask, PPSSPP width, native width
+120 360 0008 4 4
+240 600 0008 4 4
+360 840 0008 4 4
+480 1080 0008 4 4
+600 1320 0008 4 4
+720 1560 0008 4 4
+840 1800 0008 4 4
+960 2040 0008 4 4
+1080 2280 0008 4 4
+1200 2520 0008 4 4

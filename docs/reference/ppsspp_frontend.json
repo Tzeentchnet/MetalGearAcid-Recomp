@@ -1,0 +1,138 @@
+{
+  "call_trace": {
+    "edges": 2333,
+    "kinds": {
+      "jal": 2160,
+      "jalr": 173
+    },
+    "targets": 1119
+  },
+  "controller_reads": 6729,
+  "diagnostics": {
+    "expected_io_assign_warnings": 1,
+    "expected_missing_savedata_slots": 11,
+    "host_language_asset_errors": 1,
+    "other_errors": 0,
+    "other_warnings": 0
+  },
+  "errors": 1,
+  "hle_calls": 420234,
+  "padscript": "mga_boot.pad",
+  "schema": "mga-ppsspp-reference-v1",
+  "selected_hle_calls": {
+    "sceAudioOutputBlocking": 22215,
+    "sceAudioOutputPannedBlocking": 43525,
+    "sceMpegAtracDecode": 0,
+    "sceMpegAvcDecode": 0,
+    "sceMpegGetAvcAu": 0,
+    "sceMpegRingbufferPut": 0
+  },
+  "source_log": "ppsspp.log",
+  "stage_checkpoints": [
+    {
+      "allocation": "0xf500",
+      "base": "0x09b43c00",
+      "gp": "0x09b5af20",
+      "hcount": 24027,
+      "name": "init",
+      "presents": 42,
+      "uid": "0x174",
+      "vblank": 84
+    },
+    {
+      "allocation": "0x1c100",
+      "base": "0x09b43c00",
+      "gp": "0x09b67b20",
+      "hcount": 47765,
+      "name": "title",
+      "presents": 167,
+      "uid": "0x17c",
+      "vblank": 167
+    }
+  ],
+  "timeout_seconds": 20,
+  "top_hle_calls": [
+    {
+      "count": 89550,
+      "name": "sceKernelDelayThread"
+    },
+    {
+      "count": 67253,
+      "name": "sceDisplayGetAccumulatedHcount"
+    },
+    {
+      "count": 43525,
+      "name": "sceAudioOutputPannedBlocking"
+    },
+    {
+      "count": 38936,
+      "name": "sceKernelSignalSema"
+    },
+    {
+      "count": 38932,
+      "name": "sceKernelWaitSema"
+    },
+    {
+      "count": 33813,
+      "name": "sceKernelSetEventFlag"
+    },
+    {
+      "count": 33558,
+      "name": "sceDisplaySetFrameBuf"
+    },
+    {
+      "count": 22215,
+      "name": "sceAudioOutputBlocking"
+    },
+    {
+      "count": 13466,
+      "name": "sceDisplayWaitVblankStartCB"
+    },
+    {
+      "count": 6731,
+      "name": "sceGeDrawSync"
+    },
+    {
+      "count": 6729,
+      "name": "sceCtrlReadBufferPositive"
+    },
+    {
+      "count": 6723,
+      "name": "sceGeListEnQueue"
+    },
+    {
+      "count": 6721,
+      "name": "sceDisplayGetFrameBuf"
+    },
+    {
+      "count": 6492,
+      "name": "sceKernelPowerTick"
+    },
+    {
+      "count": 4652,
+      "name": "sceAtracDecodeData"
+    },
+    {
+      "count": 378,
+      "name": "sceIoDread"
+    },
+    {
+      "count": 266,
+      "name": "sceKernelWaitEventFlag"
+    },
+    {
+      "count": 50,
+      "name": "sceIoDclose"
+    },
+    {
+      "count": 50,
+      "name": "sceIoDopen"
+    },
+    {
+      "count": 22,
+      "name": "__sceSasRevEVOL"
+    }
+  ],
+  "unique_hle_calls": 61,
+  "warnings": 12
+}

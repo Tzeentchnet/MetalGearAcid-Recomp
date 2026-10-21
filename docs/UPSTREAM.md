@@ -22,19 +22,22 @@ Status values:
 | P0 | Runtime PRX loader and module registry | MGA-F-006 through MGA-F-009 | Fork commit `51aa462` + synthetic tests | Load-by-path and load-by-fd, relocation, imports, exports, start, unload, and explicit failures. |
 | P0 | Interpreter syscall continuation | MGA-F-013 | Fork commit `51aa462` + synthetic tests | Runtime PRX syscalls execute HLE and resume with the original outer return target. |
 | P0 | Per-thread GP | MGA-F-014 | Fork commit `51aa462` | Module-created threads run with their module GP. |
-| P0 | VFPU7 packed conversions | MGA-F-010 | Fork commit `1225147` | `vi2uc`, `vi2c`, `vi2us`, and `vi2s` codegen semantics with tests. |
+| P0 | VFPU7 packed conversions | MGA-F-010 | Fork commits `1225147`, `7980eb7` | `vi2uc`, `vi2c`, `vi2us`, and `vi2s` codegen semantics with executable vectors. |
 | P0 | Executable-relative resources | MGA-F-020 | Fork commit `51aa462` | VFPU tables and fonts work from any process working directory. |
-| P1 | Explicit module replacement policy | MGA-F-015 | Proposed | Per-title policy selects guest, HLE, decrypt, or reject by path/name/hash. |
+| P1 | Explicit module replacement policy | MGA-F-015 | Fork commit `abad642` + synthetic tests | Per-title policy selects guest, HLE, or reject by path/name/hash; decryption remains future work. |
 | P1 | Static recompilation of runtime modules | MGA-F-021 | Proposed | Multiple generated module tables can be activated/deactivated at runtime. |
-| P1 | Variable import binding | MGA-F-016 | Proposed | Bind supported variable imports or fail at module load with library/NID context. |
-| P1 | UID-fidelity model | MGA-F-004, MGA-F-025 | Proposed | Separate current entry UID from next UID and account for modeled kernel objects. |
+| P1 | Variable import binding | MGA-F-016 | Fork commit `abad642` explicit rejection | Bind supported variable imports in the future; current load-time rejection prevents silent misuse. |
+| P1 | UID-fidelity model | MGA-F-004, MGA-F-025 | Fork commit `abad642`; audited through first stage | Separate current entry UID from next UID and account for PSP file-node objects. |
+| P1 | Library-qualified import identity | MGA-F-031 | Fork commits `abad642`, `7980eb7` | Preserve `(library, NID)` through generated imports, runtime bindings, guest exports, and diagnostics. |
 | P1 | Callback-aware vblank HLE | MGA-F-018 | Fork commit `51aa462` | Register `sceDisplayWaitVblankStartCB` with callback-enabled waiting. |
 | P1 | Module unload/base reuse | MGA-F-007, MGA-F-026 | Fork commit `51aa462` + synthetic tests | Unload invalidates exports, frees memory, and allows deterministic overlay reuse. |
 | P1 | Interpreter budget policy | MGA-F-021 | Proposed | Per-module budgets and progress diagnostics replace one global cap. |
 | P2 | Generic diagnostic switches | MGA-F-024 through MGA-F-026 | Fork commit `51aa462` | UID, event, module, and watchdog-RAM logs are opt-in and title-neutral. |
 | P2 | Multi-buffer capture | MGA-F-023 | Proposed | Capture displayed buffer and best render/content buffer with metadata. |
-| P2 | GE `0xf0-0xf9` classification | MGA-F-022 | Proposed | Evidence-backed semantics or documented safe no-op behavior. |
+| P2 | GE `0xf0-0xf9` classification | MGA-F-022 | Fork commit `abad642` | Store immediate-vertex state and explicitly report nonzero unsupported VAP draws. |
 | P2 | Gate all title patches | MGA-F-019 | Fork commit `51aa462` | Killzone-specific data mutations require an explicit build flag. |
+| P2 | Shared dual-clock pad scripts | MGA-F-027 | Fork commit `abad642` + parent profiles | Header-only scripts are neutral and v3 profiles drive PPSSPP vblanks plus native presents. |
+| P2 | Capture-free presentation limit | MGA-F-030 | Fork commit `abad642` | `SR_EXIT_AFTER_PRESENT` logs the terminal present and exits cleanly without a game-derived capture. |
 | Config | MGA disc and boot contract | MGA-F-001 through MGA-F-005 | Game config | Keep hashes, argument, stack, UID seed, GE ID, and title outside generic defaults. |
 
 ## Recommended upstream decomposition
@@ -92,19 +95,14 @@ Generated modules must not all export the same `sr_register_all` symbol.
 
 ### 3. Import identity
 
-The current runtime's static call path is NID-only. PSP linkage is formally
-`(library, NID)`.
+PSP linkage is formally `(library, NID)`. The local generated/runtime/guest
+dispatch path now retains both values and has synthetic collision coverage.
 
-Upstream should carry both values through:
+The remaining upstream step is to namespace the built-in HLE registry itself.
+The current HLE table is still keyed globally by NID for compatibility.
 
-- generated static imports;
-- runtime syscall bindings;
-- guest export lookup;
-- diagnostics; and
-- collision tests.
-
-NID-only lookup worked for the observed Metal Gear Acid modules but should not
-be assumed globally safe.
+NID-only built-in lookup worked for the observed Metal Gear Acid modules but
+should not be assumed globally safe.
 
 ### 4. Boot-state configuration
 
