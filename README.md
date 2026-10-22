@@ -1,6 +1,6 @@
 # Metal Gear Acid Recomp
 
-Experimental source-only Windows static recompilation of **Metal Gear Acid
+Source-only Windows static recompilation of **Metal Gear Acid
 (ULUS-10006 v1.00)**. The project uses the PSP static recompiler/runtime fork
 developed for the Killzone: Liberation recompilation.
 
