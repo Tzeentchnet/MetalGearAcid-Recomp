@@ -2,6 +2,7 @@
 
 [runtime]
 repository = "https://github.com/Tzeentchnet/psp-recomp.git"
+# Keep using the published kzl ref until main exposes the pinned commit.
 branch = "kzl"
 commit = "66c18a57bef4a470751a5d56ab53acd9420f3fb0"
 

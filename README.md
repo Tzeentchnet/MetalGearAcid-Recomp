@@ -26,7 +26,7 @@ git clone --recurse-submodules `
   https://github.com/Tzeentchnet/MetalGearAcid-Recomp.git
 ```
 
-The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
+The parent pins the maintained `Tzeentchnet/psp-recomp` fork at tested commit
 `66c18a5`.
 
 ## Documentation

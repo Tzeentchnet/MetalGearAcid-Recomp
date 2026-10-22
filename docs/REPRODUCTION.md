@@ -18,7 +18,8 @@ sections 1-3, and ISO-path configuration for the launcher. The explicit
 commands below remain authoritative for reproducible validation and release
 evidence.
 
-The parent currently pins tested fork tip `66c18a5`. The relevant sequence is:
+The parent currently pins tested fork commit `66c18a5`. The relevant sequence
+is:
 
 - `e2dbc91` - runtime PRX modules and synthetic runtime tests;
 - `9683b44` - runtime import patches and initial VFPU7 codegen;
@@ -37,6 +38,12 @@ The parent currently pins tested fork tip `66c18a5`. The relevant sequence is:
   D3D12 golden capture.
 - `66c18a5` - title-configurable Killzone twin-stick behavior and standard PSP
   controller configuration for other integrations.
+
+The tested `kzl` development line through this pin has been merged into the
+maintained fork's `main` line. The parent remains pinned to the exact commit.
+Checkout metadata continues to name `kzl` until the published `main` ref
+contains `66c18a5`, so source-archive setup remains reproducible during that
+publication gap.
 
 ## 1. Extract the verified disc
 
