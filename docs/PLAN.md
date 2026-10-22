@@ -33,6 +33,8 @@ As of 2026-10-22:
   selected post-Forest STAGE01 route with low measured GPU cost; and
 - GDI, Vulkan presentation with software GE, and full Vulkan GE pass the
   deterministic front-end gate; and
+- PSP-quantized D3D12/Vulkan sampling materially narrows textured-frame
+  deltas without measurable route cost; and
 - runtime-JAL-aware live verification keeps linker-adjusted calls native while
   genuine code mismatches retain module-qualified fallback; and
 - native STAGE01 reduces matched route interpreter work by 85.51% with exact
@@ -319,8 +321,9 @@ work remains at or below 2.06 ms on the measured routes. Native STAGE01 now
 removes 85.51% of the matched route's interpreted instructions.
 GDI and both Vulkan modes pass the deterministic front end; Vulkan GE remains
 within functional metrics but not the software pixel oracle. PSP-quantized
-hardware sampling, movies, broader gameplay/audio synchronization, Vulkan
-feature-class tolerance, and soak coverage remain.
+hardware sampling is active by default and materially narrows both GPU
+renderers' deltas. Remaining feature-class tolerance, movies, broader
+gameplay/audio synchronization, and soak coverage remain.
 
 Work:
 

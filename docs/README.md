@@ -10,7 +10,7 @@ framework.
   `https://github.com/Tzeentchnet/MetalGearAcid-Recomp`
 - Public maintained runtime fork:
   `https://github.com/Tzeentchnet/psp-recomp`
-- Pinned runtime commit: `06e7010`
+- Pinned runtime commit: `2584d53`
 
 The parent being private does not change the evidence policy below. Game data,
 generated code, saves, logs, traces, dumps, and captures remain untracked.

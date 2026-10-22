@@ -15,7 +15,7 @@ Set-Location MetalGearAcid-Recomp
 
 GitHub authentication is required for the private parent.
 
-The parent currently pins tested fork tip `06e7010`. The relevant sequence is:
+The parent currently pins tested fork tip `2584d53`. The relevant sequence is:
 
 - `e2dbc91` - runtime PRX modules and synthetic runtime tests;
 - `9683b44` - runtime import patches and initial VFPU7 codegen;
@@ -29,6 +29,7 @@ The parent currently pins tested fork tip `06e7010`. The relevant sequence is:
   capture, PSO persistence safety, and clean bounded-run shutdown.
 - `06e7010` - repeated live-code verification and runtime-JAL-aware overlay
   validation.
+- `2584d53` - PSP-quantized D3D12/Vulkan nearest and bilinear sampling.
 
 ## 1. Extract the verified disc
 
@@ -614,7 +615,9 @@ python external\psp-recomp\tools\ppmdiff.py `
 
 The measured title checkpoints have maximum channel delta 18-25 and about
 13.6% of pixels above delta 8. The fade checkpoint has maximum delta 9 and
-0.61% above delta 8.
+0.61% above delta 8 with host hardware filtering. The default
+PSP-quantized sampler reduces the title frames to `1.02-1.04%` above delta 8
+with maximum delta 17, and the fade to `0.03%` above delta 8.
 
 ### Structured timing and interpreter profiles
 
@@ -720,8 +723,9 @@ python external\psp-recomp\tools\ppmdiff.py `
 ```
 
 The software GE captures are byte-identical through GDI and Vulkan
-presentation. Full Vulkan GE is not pixel-identical; compare it to GDI with
-the diagnostic delta-8 report:
+presentation. D3D12 and Vulkan use PSP-quantized sampling by default. Set
+`SR_GPU_PSP_SAMPLER=0` for a host-filtering control, then compare each GPU
+renderer to GDI with the diagnostic delta-8 report:
 
 ```powershell
 python external\psp-recomp\tools\ppmdiff.py `
@@ -733,8 +737,18 @@ python external\psp-recomp\tools\ppmdiff.py `
   --json build\mga\renderer-vulkan-ge\gdi-diff.json
 ```
 
-Measured title frames have `5.81-5.88%` of pixels above delta 8 and maximum
-delta 17; the fade has `0.42%` above delta 8 and maximum delta 9.
+Measured front-end deltas:
+
+| Renderer | Sampler | Title pixels above delta 8 | Fade above delta 8 |
+|---|---|---:|---:|
+| D3D12 | Host hardware | `13.54-13.62%` | `0.61%` |
+| D3D12 | PSP-quantized | `1.02-1.04%` | `0.03%` |
+| Vulkan | Host hardware | `5.81-5.88%` | `0.42%` |
+| Vulkan | PSP-quantized | `3.58-3.63%` | `0.45%` |
+
+Maximum title delta is 17 on both quantized paths. Both also complete the
+native STAGE01 route with unchanged save fixtures and clean failure/audio
+markers.
 
 One diagnostic run measured:
 

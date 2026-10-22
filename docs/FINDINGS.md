@@ -1127,8 +1127,9 @@ hardware floating-point texture filtering, while the software oracle
 quantizes bilinear weights to 8 bits and truncates each interpolation stage.
 The evidence therefore localizes the dominant difference to texture
 sampling/interpolation quantization before destination blending. A manual
-PSP-quantized GPU sampler is the next focused experiment; broadening the
-existing whole-frame tolerance is not.
+PSP-quantized GPU sampler is implemented and measured in MGA-F-059;
+broadening the existing whole-frame tolerance is not a substitute for the
+remaining feature-class analysis.
 
 ### MGA-F-054 - Interpreter cost is concentrated in a few overlay entries
 
@@ -1283,12 +1284,49 @@ GDI presentation alone does not improve throughput. Vulkan GE submitted
 GPU-owned and five CPU presentations. These single-run timing values are
 diagnostic rather than release thresholds.
 
+### MGA-F-059 - PSP-quantized GPU sampling materially improves parity
+
+Fork commit `2584d53` adds a shared sampling policy to D3D12 and Vulkan for
+non-mipmapped textures:
+
+1. nearest coordinates follow the software renderer's shifted integer rule;
+2. bilinear weights are truncated to 8-bit fractions;
+3. horizontal and vertical interpolation use the same ordered signed
+   `>> 8` operations; and
+4. wrap/clamp coordinates are resolved explicitly before texel fetch.
+
+The path is enabled by default. `SR_GPU_PSP_SAMPLER=0` restores host hardware
+filtering for A/B diagnostics. Mipmapped D3D12 textures retain the hardware
+path until PSP LOD selection is modeled explicitly.
+
+Against the software oracle:
+
+| Renderer | Sampler | Title pixels above delta 8 | Title maximum delta | Fade above delta 8 |
+|---|---|---:|---:|---:|
+| D3D12 | Hardware | `13.54-13.62%` | `18-25` | `0.61%` |
+| D3D12 | PSP-quantized | `1.02-1.04%` | `17` | `0.03%` |
+| Vulkan | Hardware | `5.81-5.88%` | `17` | `0.42%` |
+| Vulkan | PSP-quantized | `3.58-3.63%` | `17` | `0.45%` |
+
+D3D12's large-delta title population falls by more than 92%; Vulkan's falls
+by about 38%. The quantized path also reduces the number of any-difference
+pixels from about 70% to 63% on D3D12 and from about 24% to 13% on Vulkan.
+The remaining maximum deltas show that sampler quantization is not the only
+source of raster divergence.
+
+Both default quantized renderers pass the exact front-end functional, input,
+audio, module, and fallback gates. D3D12 and Vulkan also complete the native
+STAGE01 route with unchanged save fixtures and no runtime failure marker.
+Single-run timing and D3D12 GPU timestamps show no measurable cost on these
+routes; dedicated repeated performance thresholds remain future work.
+
 ## Ranked improvement opportunities
 
 | Rank | Priority | Opportunity | Evidence | Confidence | Disposition |
 |---:|---|---|---|---:|---|
 | Done | P1 | Generate, live-verify, and activate native `st01` | 85.51% fewer interpreted instructions with exact frame parity | 10/10 | Completed in MGA-F-057 |
-| 1 | P1 | Implement PSP-quantized hardware sampling and feature-class D3D12/Vulkan goldens | Both GPU renderers diverge on textured frames while software output is presenter-independent | 9/10 | Focused graphics experiment |
+| Done | P1 | Implement PSP-quantized hardware sampling | D3D12 title pixels above delta 8 fall from ~13.6% to ~1.0%; Vulkan also improves | 10/10 | Completed in MGA-F-059 |
+| 1 | P1 | Build feature-class D3D12/Vulkan goldens and isolate remaining deltas | Quantized sampling helps substantially, but maximum title delta remains 17 | 9/10 | Next graphics investigation |
 | 2 | P1 | Replace serialized pipeline libraries with safe per-PSO persistence | Reusing the current disk cache removes the D3D12 device | 10/10 | Keep gated until redesigned |
 | 3 | P1 | Continue CMake/CTest integration for existing graphics/runtime tests | Relevant tests existed but were not reachable from the parent CTest surface | 9/10 | Incremental maintenance |
 | 4 | P2 | Profile the remaining front-end and STAGE01 fallback entries | The revised exact sets contain 56 and 110 targets respectively | 9/10 | Re-rank after broader gameplay |

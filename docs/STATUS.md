@@ -39,8 +39,11 @@ Ready and blocked work is tracked in [TODO.md](TODO.md).
   1x/2x/4x/8x load the selected post-Forest STAGE01 route.
 - The Win32 GDI baseline, Vulkan presenter with software GE, and full Vulkan
   GE backend all pass the deterministic front-end functional/audio/fallback
-  gate. The Vulkan presenter preserves software captures exactly; Vulkan GE
-  retains measured raster color deltas that still need feature-class review.
+  gate. The Vulkan presenter preserves software captures exactly.
+- D3D12 and Vulkan use PSP-quantized nearest/bilinear sampling by default.
+  This reduces title pixels above delta 8 from about 13.6% to 1.0% on D3D12
+  and from about 5.8% to 3.6% on Vulkan. Both still retain maximum delta 17
+  cases that need feature-class review.
 - Failed live-code wrappers remain in the interpreter, eliminating the
   post-prologue host stack overflow; the 50,000-presentation regression route
   exits cleanly.
@@ -57,7 +60,7 @@ The next gameplay milestone remains identifying the dark briefing's intended
 advance control and completing a playable, savable new-game first-mission
 route. Feature-class D3D12/Vulkan goldens, movies, full-stage pacing, campaign
 validation, and long soaks also remain. The next ranked renderer experiment
-is PSP-quantized D3D12/Vulkan texture sampling.
+is isolating the remaining D3D12/Vulkan feature-class deltas.
 
 ## History and attribution
 
@@ -66,7 +69,7 @@ On 2026-10-22, the parent `master` history and the runtime fork's `kzl` and
 preserving the human author and committer identities. The cleaned runtime tips
 are:
 
-- runtime `kzl`: `06e7010`; and
+- runtime `kzl`: `2584d53`; and
 - runtime `main`: `2a86b1f`.
 
 The current parent tip is always `origin/master`.

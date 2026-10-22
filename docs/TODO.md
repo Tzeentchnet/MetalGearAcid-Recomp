@@ -80,9 +80,9 @@ The next ready P0 work is:
     `e2dbc91`; codegen/import/VFPU7 work committed as `9683b44`; the parent
     submodule was subsequently advanced to tested fidelity commits `245031c`
     and `96dd536`, then to native-overlay/audio/stability commit `3f7d48e` and
-    renderer/profiling diagnostics commit `40447fd`, then live-overlay
-    verification commit `06e7010`. The parent is pinned to `06e7010`. The
-    fork branch is published at
+    renderer/profiling diagnostics commit `40447fd`, live-overlay verification
+    commit `06e7010`, then quantized GPU sampling commit `2584d53`. The parent
+    is pinned to `2584d53`. The fork branch is published at
     `Tzeentchnet/psp-recomp`; the parent is published privately at
     `Tzeentchnet/MetalGearAcid-Recomp`.
 - [x] **T-1.2 P0** Add synthetic runtime PRX loader tests.
@@ -381,6 +381,10 @@ The next ready P0 work is:
     frames have maximum delta 17 with 5.81-5.88% of pixels above delta 8; the
     fade has maximum delta 9 and 0.42% above delta 8. Feature-class tolerance
     work now covers both hardware renderers.
+  - Progress 2026-10-22: default PSP-quantized sampling reduces title pixels
+    above delta 8 to 1.02-1.04% on D3D12 and 3.58-3.63% on Vulkan. Maximum
+    delta remains 17, so geometry/interpolation/texture-function feature
+    isolation remains.
 - [x] **T-6.4 P1** Validate supported internal resolutions and presentation
   layouts.
   - Done 2026-10-22: every D3D12 scale from 1x through 8x passes the exact
@@ -475,6 +479,12 @@ The next ready P0 work is:
     dependencies. Vulkan/software GE matches all GDI captures byte-for-byte;
     full Vulkan GE passes frame semantics, input, audio, module, and fallback
     gates on an RTX 5070. Vulkan-preset CTest passes 7/7.
+- [x] **T-6.16 P1** Implement PSP-quantized GPU texture sampling.
+  - Done 2026-10-22: D3D12 and Vulkan now use 8-bit bilinear weights,
+    ordered truncation, and explicit wrap/clamp texel fetches by default for
+    supported textures. Front-end and native STAGE01 routes pass on both
+    backends with no measured D3D12 GPU-cost regression.
+    `SR_GPU_PSP_SAMPLER=0` retains the hardware-filter control.
 
 ## Phase 7 - CI and source release
 

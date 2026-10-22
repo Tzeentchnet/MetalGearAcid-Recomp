@@ -23,7 +23,7 @@ git clone --recurse-submodules `
 ```
 
 The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
-`06e7010`.
+`2584d53`.
 
 ## Documentation
 
@@ -100,6 +100,10 @@ cmake --build --preset clang-cl-vulkan --target mga_driver
 Run `out\build\clang-cl-vulkan\mga.exe` with `SR_GPU=vk`. To use the Vulkan
 window/presenter with the pixel-exact software GE instead, set `SR_GPU=sw` in
 that build. The Vulkan build requires a working Vulkan 1.1-capable driver.
+
+D3D12 and Vulkan use PSP-quantized nearest/bilinear texture sampling by
+default. Set `SR_GPU_PSP_SAMPLER=0` only for A/B diagnostics against host
+hardware filtering.
 
 Run it against the same verified disc:
 
