@@ -59,6 +59,44 @@ if(NOT MGA_RUNTIME_ONLY)
     target_compile_options(mga_game PRIVATE -Wall -Wno-unused-label
       ${MGA_FP_FLAGS} "$<$<CONFIG:Release>:-O1>")
   endif()
+
+  function(mga_add_native_module target module_id prefix)
+    set(module_dir
+      "${CMAKE_SOURCE_DIR}/build/mga/modules/${module_id}")
+    file(GLOB module_sources CONFIGURE_DEPENDS
+      "${module_dir}/${prefix}_[0-9][0-9][0-9].c")
+    set(module_register "${module_dir}/${prefix}_register.c")
+    if(NOT EXISTS "${module_register}" OR NOT module_sources)
+      message(FATAL_ERROR
+        "No generated ${module_id} code in ${module_dir}. "
+        "Run tools/mga/gen.py.")
+    endif()
+    list(APPEND module_sources "${module_register}")
+    add_library(${target} STATIC ${module_sources})
+    target_include_directories(${target} PRIVATE
+      "${PSP_RECOMP_DIR}/src/rt" "${module_dir}")
+    target_compile_definitions(${target} PRIVATE
+      "SR_ENABLE_INSTRUCTION_TRACE=$<BOOL:${MGA_ENABLE_INSTRUCTION_TRACE}>")
+    if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
+      target_compile_options(${target} PRIVATE /W3 ${MGA_FP_FLAGS}
+        "$<$<CONFIG:Release>:/O1>")
+    else()
+      target_compile_options(${target} PRIVATE -Wall -Wno-unused-label
+        ${MGA_FP_FLAGS} "$<$<CONFIG:Release>:-O1>")
+    endif()
+  endfunction()
+
+  mga_add_native_module(mga_kjfs kjfs mga_kjfs)
+  mga_add_native_module(mga_zlib zlib mga_zlib)
+  mga_add_native_module(mga_sound sound mga_sound)
+  mga_add_native_module(
+    mga_stage_init stage_init mga_stage_init)
+  mga_add_native_module(
+    mga_stage_title stage_title mga_stage_title)
+  mga_add_native_module(
+    mga_stage_prologue stage_prologue mga_stage_prologue)
+  mga_add_native_module(
+    mga_stage_st00 stage_st00 mga_stage_st00)
 endif()
 
 set(RT "${PSP_RECOMP_DIR}/src/rt")
@@ -102,12 +140,14 @@ set(MGA_RUNTIME_SRCS
   ${RT}/recomp.c
   ${RT}/dispatch_table.c
   ${RT}/fpu_mode.c
+  ${RT}/fps_counter.c
   ${RT}/interp_runtime.cpp
   ${PSP_RECOMP_DIR}/src/ref/interp.cpp
   ${RT}/module.c
   ${RT}/vfpu_interp.c
   ${RT}/vfpu_asin.c
   ${RT}/hle.c
+  ${RT}/memstick_state.c
   ${RT}/net.c
   ${RT}/kmem.c
   ${RT}/intr.c
@@ -181,13 +221,13 @@ target_compile_definitions(mga_driver PRIVATE
   SR_MODULE_START_STACK_SIZE=0x40000u
   SR_MODULE_START_ATTR=0u
   SR_MODULE_POLICY_INIT=sr_mga_register_module_policy
-  SR_INTERP_DEFAULT_MAX_STEPS=100000000ULL
   SR_INITIAL_GE_LIST_ID=0)
 if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
   target_compile_options(mga_driver PRIVATE /clang:-Wno-macro-redefined)
 endif()
 target_link_libraries(mga_driver PRIVATE
-  mga_game mga_at3 mga_savedata_crypto
+  mga_game mga_kjfs mga_zlib mga_sound mga_stage_init mga_stage_title
+  mga_stage_prologue mga_stage_st00 mga_at3 mga_savedata_crypto
   mfplat mfuuid gdi32 user32 dinput8 dxguid ole32 winmm xaudio2 bcrypt)
 if(MGA_ENABLE_D3D12)
   target_compile_definitions(mga_driver PRIVATE SR_D3D12)
@@ -223,6 +263,61 @@ if(BUILD_TESTING)
   endif()
   add_test(NAME mga_module_loader COMMAND mga_module_loader_tests)
 
+  add_executable(mga_dispatch_table_tests EXCLUDE_FROM_ALL
+    ${PSP_RECOMP_DIR}/tools/tests/dispatch_table_test.c
+    ${RT}/dispatch_table.c)
+  target_include_directories(mga_dispatch_table_tests PRIVATE "${RT}")
+  target_compile_definitions(mga_dispatch_table_tests PRIVATE
+    _CRT_SECURE_NO_WARNINGS)
+  target_compile_options(mga_dispatch_table_tests PRIVATE ${MGA_FP_FLAGS})
+  if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
+    target_compile_options(mga_dispatch_table_tests PRIVATE /W3)
+  else()
+    target_compile_options(mga_dispatch_table_tests PRIVATE -Wall -Wextra)
+  endif()
+  add_test(NAME mga_dispatch_table COMMAND mga_dispatch_table_tests)
+
+  add_executable(mga_fps_counter_tests EXCLUDE_FROM_ALL
+    ${PSP_RECOMP_DIR}/tools/tests/fps_counter_test.c
+    ${RT}/fps_counter.c)
+  target_include_directories(mga_fps_counter_tests PRIVATE "${RT}")
+  target_compile_options(mga_fps_counter_tests PRIVATE ${MGA_FP_FLAGS})
+  if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
+    target_compile_options(mga_fps_counter_tests PRIVATE /W3)
+  else()
+    target_compile_options(mga_fps_counter_tests PRIVATE -Wall -Wextra)
+  endif()
+  add_test(NAME mga_fps_counter COMMAND mga_fps_counter_tests)
+
+  add_executable(mga_memstick_state_tests EXCLUDE_FROM_ALL
+    ${PSP_RECOMP_DIR}/tools/tests/memstick_state_test.c
+    ${RT}/memstick_state.c)
+  target_include_directories(mga_memstick_state_tests PRIVATE "${RT}")
+  target_compile_definitions(mga_memstick_state_tests PRIVATE
+    _CRT_SECURE_NO_WARNINGS)
+  target_compile_options(mga_memstick_state_tests PRIVATE ${MGA_FP_FLAGS})
+  if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
+    target_compile_options(mga_memstick_state_tests PRIVATE /W3)
+  else()
+    target_compile_options(mga_memstick_state_tests PRIVATE -Wall -Wextra)
+  endif()
+  add_test(NAME mga_memstick_state COMMAND mga_memstick_state_tests)
+
+  add_executable(mga_input_config_tests EXCLUDE_FROM_ALL
+    ${PSP_RECOMP_DIR}/tools/tests/input_config_test.c
+    ${RT}/input_config.c
+    ${RT}/settings_path.c)
+  target_include_directories(mga_input_config_tests PRIVATE "${RT}")
+  target_compile_definitions(mga_input_config_tests PRIVATE
+    _CRT_SECURE_NO_WARNINGS)
+  target_compile_options(mga_input_config_tests PRIVATE ${MGA_FP_FLAGS})
+  if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
+    target_compile_options(mga_input_config_tests PRIVATE /W3)
+  else()
+    target_compile_options(mga_input_config_tests PRIVATE -Wall -Wextra)
+  endif()
+  add_test(NAME mga_input_config COMMAND mga_input_config_tests)
+
   add_executable(mga_interp_tests EXCLUDE_FROM_ALL
     ${PSP_RECOMP_DIR}/tools/tests/interp_fallback_test.cpp
     ${RT}/recomp.c
@@ -230,6 +325,8 @@ if(BUILD_TESTING)
     ${RT}/fpu_mode.c
     ${RT}/interp_runtime.cpp
     ${PSP_RECOMP_DIR}/src/ref/interp.cpp
+    ${RT}/vfpu_interp.c
+    ${RT}/vfpu_asin.c
     ${RT}/settings_path.c)
   target_include_directories(mga_interp_tests PRIVATE
     "${RT}" "${PSP_RECOMP_DIR}/src/ref")

@@ -10,7 +10,7 @@ framework.
   `https://github.com/Tzeentchnet/MetalGearAcid-Recomp`
 - Public maintained runtime fork:
   `https://github.com/Tzeentchnet/psp-recomp`
-- Pinned runtime commit: `7980eb7`
+- Pinned runtime commit: `2bf37a0`
 
 The parent being private does not change the evidence policy below. Game data,
 generated code, saves, logs, traces, dumps, and captures remain untracked.
@@ -31,6 +31,24 @@ generated code, saves, logs, traces, dumps, and captures remain untracked.
   oracle capture, build, trace comparison, and rendering smoke-test commands.
 - [PPSSPP_REFERENCE.md](PPSSPP_REFERENCE.md) - deterministic protected-oracle
   front-end checkpoints and reduced non-game metrics.
+
+## Current validated checkpoint
+
+Phases 2 and 3 are complete. Three native runs reproduce the same title-menu
+selector states and transition into the new-game opening overlay while XAudio2
+is active. KJFS, ZLIB, sound, init, title, and prologue use generated native
+tables; remaining post-load-patched overlay functions are covered by an exact
+module-qualified allowlist. Empty, removed, and existing-save memory-stick
+paths pass. Gameplay, card/campaign PMFs, save creation, broader D3D12
+golden/scaling coverage, and full-game stability remain later milestones.
+The D3D12 build now passes
+the deterministic front-end gate and is the recommended performance path;
+software rendering remains the pixel-exact reference.
+
+Reduced machine-readable evidence lives in
+`reference/native_frontend.json`, `reference/native_frontend_menu.json`, and
+`reference/ppsspp_frontend.json`; protected logs, saves, and captures remain
+ignored.
 
 ## Evidence policy
 

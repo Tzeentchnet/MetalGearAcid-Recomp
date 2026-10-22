@@ -26,10 +26,24 @@ class NativeSummaryTests(unittest.TestCase):
             "size=f500 entry=09b43c34 gp=09b5af20\n"
             "module loader: mgp_stage uid=0x17b base=09b43c00 "
             "size=1c100 entry=09b43c34 gp=09b67b20\n"
+            "PADSCRIPT clock=present frame=3003 present=3003 "
+            "vblank=1298 mask=0x0040\n"
+            "audio: XAudio2 44.1 kHz stereo, 8 x 256-frame buffers "
+            "(46.44 ms)\n"
+            "audio: XAudio2 shutdown played=44100 frames (1000.00 ms), "
+            "clock_drift=-2.50 ms, device_buffers=1..8, "
+            "max_guest_queue=512, dropped=0, resynced=10, "
+            "silent_blocks=2, underruns=3\n"
             f"presentation limit reached at present {present}\n",
             encoding="ascii",
         )
         return path
+
+    def test_names_first_mission_overlay(self):
+        self.assertEqual(
+            summary.STAGE_NAMES_BY_ALLOCATION[0x19200],
+            "st00",
+        )
 
     def test_summarizes_successful_title_gate(self):
         misses = self.root / "misses.txt"
@@ -56,7 +70,13 @@ class NativeSummaryTests(unittest.TestCase):
                 "host_crashes": 0,
                 "watchdogs": 0,
                 "interpreter_stops": 0,
+                "permissive_fallbacks": 0,
             },
+        )
+        self.assertEqual(document["pad_events"][0]["mask"], "0x0040")
+        self.assertEqual(document["audio"]["backend"], "XAudio2")
+        self.assertEqual(
+            document["audio"]["shutdown"]["played_frames"], 44100
         )
 
     def test_rejects_wrong_present_limit(self):
@@ -72,6 +92,7 @@ class NativeSummaryTests(unittest.TestCase):
             "HOST CRASH\n"
             "WATCHDOG: no frame\n"
             "dispatch: interpreter stopped\n"
+            "dispatch: permissive no-op return after interpreter failure\n"
             "presentation limit reached at present 1\n",
             encoding="ascii",
         )

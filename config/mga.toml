@@ -24,6 +24,9 @@ base = 0x08804000
 entry = 0x0880432c
 text_size = 0x12f734
 image_size = 0x1e1800
+function_entries = [
+  0x08919f10,
+]
 
 [module.start_thread]
 uid = 0x113
@@ -33,3 +36,64 @@ attr = 0
 next_uid = 0x114
 initial_ge_list_id = 0
 argument = "disc0:/PSP_GAME/SYSDIR/EBOOT.BIN"
+
+[[native_module]]
+id = "kjfs"
+file = "PSP_GAME/USRDIR/modules/kjfs.prx"
+prefix = "mga_kjfs"
+base = 0x09af5800
+sha1 = "78e4d6c569be06ecb25b5a88caf230709c575ead"
+
+[[native_module]]
+id = "zlib"
+file = "PSP_GAME/USRDIR/modules/zlibdec.prx"
+prefix = "mga_zlib"
+base = 0x09b05200
+sha1 = "e6b33fae3f3579745aec806fb8bcc3cd2cd7ced4"
+
+[[native_module]]
+id = "sound"
+file = "PSP_GAME/USRDIR/modules/sound.prx"
+prefix = "mga_sound"
+base = 0x09b15000
+sha1 = "32af84c6ebd301864c9d41be2ecc0cebd879e109"
+
+[[native_module]]
+id = "stage_init"
+file = "PSP_GAME/USRDIR/stage/init/init.prx"
+runtime_path = "disc0:/sce_lbn0x10b80_size0x144a6"
+prefix = "mga_stage_init"
+base = 0x09b43c00
+sha1 = "21cc9fd6cc74551db23f59cc34cad3e0a9585cb4"
+runtime_jal = true
+verify_runtime_code = true
+
+[[native_module]]
+id = "stage_title"
+file = "PSP_GAME/USRDIR/stage/title/title.prx"
+runtime_path = "disc0:/sce_lbn0x17810_size0x24189"
+prefix = "mga_stage_title"
+base = 0x09b43c00
+sha1 = "c280a20e8cfc43c659bf85a3b5ccea6c40c088df"
+runtime_jal = true
+verify_runtime_code = true
+
+[[native_module]]
+id = "stage_prologue"
+file = "PSP_GAME/USRDIR/stage/prologue/prologue.prx"
+runtime_path = "disc0:/sce_lbn0x11780_size0x22f8e"
+prefix = "mga_stage_prologue"
+base = 0x09b43c00
+sha1 = "c99a55c0dadfd673dc3b5c878aee4e852615138a"
+runtime_jal = true
+verify_runtime_code = true
+
+[[native_module]]
+id = "stage_st00"
+file = "PSP_GAME/USRDIR/stage/st00/st00.prx"
+runtime_path = "disc0:/sce_lbn0x11ad0_size0x1fb51"
+prefix = "mga_stage_st00"
+base = 0x09b43c00
+sha1 = "7899000a805ae773838b6c11741e62af46d14338"
+runtime_jal = true
+verify_runtime_code = true

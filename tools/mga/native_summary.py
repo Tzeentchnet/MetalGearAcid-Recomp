@@ -11,6 +11,8 @@ SCHEMA = "mga-native-reference-v1"
 STAGE_NAMES_BY_ALLOCATION = {
     0xF500: "init",
     0x1C100: "title",
+    0x1C600: "new_game_intro",
+    0x19200: "st00",
 }
 
 
@@ -21,30 +23,40 @@ class SummaryError(ValueError):
 def count_dispatch_misses(path):
     if path is None or not Path(path).exists():
         return 0
-    addresses = set()
+    targets = set()
     with Path(path).open("r", encoding="ascii") as stream:
         for line_number, raw_line in enumerate(stream, 1):
             line = raw_line.strip()
             if not line or line.startswith("#"):
                 continue
+            fields = line.split()
+            if len(fields) == 1:
+                module = "unknown"
+                address_text = fields[0]
+            elif len(fields) == 2:
+                module, address_text = fields
+            else:
+                raise SummaryError(
+                    f"{path}:{line_number}: invalid dispatch target"
+                )
             if (
-                len(line) != 10
-                or not line.startswith("0x")
+                len(address_text) != 10
+                or not address_text.startswith("0x")
                 or any(
                     character not in "0123456789abcdefABCDEF"
-                    for character in line[2:]
+                    for character in address_text[2:]
                 )
             ):
                 raise SummaryError(
                     f"{path}:{line_number}: invalid dispatch address"
                 )
-            address = int(line, 16)
-            if address in addresses:
+            target = (module, int(address_text, 16))
+            if target in targets:
                 raise SummaryError(
-                    f"{path}:{line_number}: duplicate dispatch address"
+                    f"{path}:{line_number}: duplicate dispatch target"
                 )
-            addresses.add(address)
-    return len(addresses)
+            targets.add(target)
+    return len(targets)
 
 
 def build_summary(log, misses=None, present_limit=None, padscript=None):
@@ -56,12 +68,29 @@ def build_summary(log, misses=None, present_limit=None, padscript=None):
     limit_pattern = re.compile(
         r"presentation limit reached at present (\d+)"
     )
+    pad_pattern = re.compile(
+        r"PADSCRIPT clock=(present|vblank) frame=(\d+) "
+        r"present=(\d+) vblank=(\d+) mask=0x([0-9a-fA-F]+)"
+    )
+    audio_init_pattern = re.compile(
+        r"audio: (\S+) ([0-9.]+) kHz (mono|stereo), "
+        r"(\d+) x (\d+)-frame buffers \(([0-9.]+) ms\)"
+    )
+    audio_shutdown_pattern = re.compile(
+        r"audio: \S+ shutdown played=(\d+) frames \(([0-9.]+) ms\), "
+        r"clock_drift=([-0-9.]+) ms, device_buffers=(\d+)\.\.(\d+), "
+        r"max_guest_queue=(\d+), dropped=(\d+), resynced=(\d+), "
+        r"silent_blocks=(\d+), underruns=(\d+)"
+    )
     stages = []
+    pad_events = []
+    audio = None
     reached_present = None
     unimplemented_hle = 0
     host_crashes = 0
     watchdogs = 0
     interpreter_stops = 0
+    permissive_fallbacks = 0
     with Path(log).open("r", encoding="utf-8", errors="replace") as stream:
         for line in stream:
             match = stage_pattern.search(line)
@@ -82,10 +111,50 @@ def build_summary(log, misses=None, present_limit=None, padscript=None):
             match = limit_pattern.search(line)
             if match:
                 reached_present = int(match.group(1), 10)
+            match = pad_pattern.search(line)
+            if match:
+                pad_events.append(
+                    {
+                        "clock": match.group(1),
+                        "frame": int(match.group(2), 10),
+                        "present": int(match.group(3), 10),
+                        "vblank": int(match.group(4), 10),
+                        "mask": f"0x{int(match.group(5), 16):04x}",
+                    }
+                )
+            match = audio_init_pattern.search(line)
+            if match:
+                audio = {
+                    "backend": match.group(1),
+                    "sample_rate_hz": int(float(match.group(2)) * 1000),
+                    "channels": 1 if match.group(3) == "mono" else 2,
+                    "buffer_count": int(match.group(4), 10),
+                    "buffer_frames": int(match.group(5), 10),
+                    "latency_ms": float(match.group(6)),
+                }
+            match = audio_shutdown_pattern.search(line)
+            if match:
+                if audio is None:
+                    audio = {}
+                audio["shutdown"] = {
+                    "played_frames": int(match.group(1), 10),
+                    "played_ms": float(match.group(2)),
+                    "clock_drift_ms": float(match.group(3)),
+                    "device_buffers_min": int(match.group(4), 10),
+                    "device_buffers_max": int(match.group(5), 10),
+                    "max_guest_queue": int(match.group(6), 10),
+                    "dropped": int(match.group(7), 10),
+                    "resynced": int(match.group(8), 10),
+                    "silent_blocks": int(match.group(9), 10),
+                    "underruns": int(match.group(10), 10),
+                }
             unimplemented_hle += "HLE: unimplemented" in line
             host_crashes += "HOST CRASH" in line
             watchdogs += "WATCHDOG:" in line
             interpreter_stops += "dispatch: interpreter stopped" in line
+            permissive_fallbacks += (
+                "dispatch: permissive no-op return" in line
+            )
     if present_limit is not None and reached_present != present_limit:
         raise SummaryError(
             f"{log}: reached present {reached_present}, "
@@ -98,12 +167,15 @@ def build_summary(log, misses=None, present_limit=None, padscript=None):
         "present_limit": present_limit,
         "reached_present": reached_present,
         "stage_checkpoints": stages,
+        "pad_events": pad_events,
+        "audio": audio,
         "dispatch_misses": count_dispatch_misses(misses),
         "failures": {
             "unimplemented_hle": unimplemented_hle,
             "host_crashes": host_crashes,
             "watchdogs": watchdogs,
             "interpreter_stops": interpreter_stops,
+            "permissive_fallbacks": permissive_fallbacks,
         },
     }
 

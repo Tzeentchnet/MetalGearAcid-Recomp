@@ -28,11 +28,11 @@ When completing an item:
 
 The next ready P0 work is:
 
-1. **T-2.7** validate empty/present/missing/existing-save states;
-2. **T-2.8** validate intro PMF video/audio and skip behavior;
-3. **T-2.9** validate keyboard/gamepad control through title menus;
-4. **T-2.10** add title/menu frame and audio acceptance checks;
-5. **T-2.11** repeat deterministic title/menu runs three times.
+1. **T-4.1** define the title-to-tutorial/first-mission reference route;
+2. **T-4.2** enter a new game and complete initial deck/card setup;
+3. **T-4.3** validate movement, camera, cards, actions, pause, and cancel;
+4. **T-4.4** validate combat, enemy turns, failure, and retry;
+5. **T-4.5** validate every module/stage transition on the route.
 
 ## Phase 0 - Reproducible boot baseline
 
@@ -46,7 +46,8 @@ The next ready P0 work is:
     skipped.
 - [x] **T-0.3 P0** Relocate and generate the main module with no trapping
   functions.
-  - Done 2026-10-21: 46,628 relocations, 9,913/9,913 functions, zero stubs.
+  - Done 2026-10-21: 46,628 relocations, 9,914/9,914 functions, zero stubs,
+    including the verified computed callback entry at `0x08919f10`.
 - [x] **T-0.4 P0** Build the native Windows executable with clang-cl.
   - Done 2026-10-21: release build links `mga.exe` and packages VFPU/font
     resources.
@@ -78,7 +79,8 @@ The next ready P0 work is:
   - Done 2026-10-21: runtime/module work and native tests committed as
     `51aa462`; codegen/import/VFPU7 work committed as `1225147`; the parent
     submodule was subsequently advanced to tested fidelity commits `abad642`
-    and `7980eb7`, and is pinned to `7980eb7`. The fork branch is published at
+    and `7980eb7`, then to the tested native-overlay/audio/stability commit
+    `2bf37a0`. The parent is pinned to `2bf37a0`. The fork branch is published at
     `Tzeentchnet/psp-recomp`; the parent is published privately at
     `Tzeentchnet/MetalGearAcid-Recomp`.
 - [x] **T-1.2 P0** Add synthetic runtime PRX loader tests.
@@ -147,6 +149,11 @@ The next ready P0 work is:
   smoke tests for every upstream fork batch.
 - [ ] **T-1.12 P1** Upstream accepted generic changes and update
   `UPSTREAM.md` status and parent submodule pin.
+- [x] **T-1.13 P1** Make first-run, configuration, and native message dialogs
+  use the compiled game title.
+  - Done 2026-10-21: removed the remaining hardcoded Killzone captions from
+    `gui.c`; verified `Metal Gear Acid Graphics` and
+    `Metal Gear Acid Controller` in fresh processes.
 
 ## Phase 2 - Deterministic front end
 
@@ -156,7 +163,8 @@ The next ready P0 work is:
     profiles with independent PPSSPP-vblank and native-presentation timing;
     added a strict validator and five unit tests; verified the neutral profile
     is accepted by both backends and suppresses native automatic input while
-    preserving the frame-60 checkpoint.
+    preserving the frame-60 checkpoint. Title validation later corrected the
+    menu confirm action from CROSS to CIRCLE.
 - [x] **T-2.2 P0** Define isolated empty and existing-save memstick fixtures.
   - Fixtures remain protected/local; commit only generators or metadata.
   - Done 2026-10-21: added a source-only fixture creator/verifier for PPSSPP
@@ -181,7 +189,7 @@ The next ready P0 work is:
 - [x] **T-2.5 P0** Fix every unimplemented HLE or dispatch failure encountered
   before title.
   - Done 2026-10-21: the present-600 gate reports zero unimplemented HLEs,
-    host crashes, watchdogs, and interpreter stops. Forty-eight expected
+    host crashes, watchdogs, and interpreter stops. Fifty expected
     interpreter fallback targets remain for T-3 native-module conversion.
 - [x] **T-2.6 P1** Classify GE commands `0xf0-0xf9` against PPSSPP and add
   focused tests for any required behavior.
@@ -190,58 +198,133 @@ The next ready P0 work is:
     stores all ten words and reports only nonzero unsupported `VAP` draws.
     Metal Gear Acid writes zero initialization values through present 600, so
     the title gate has no remaining `0xf0-0xf9` warnings.
-- [ ] **T-2.7 P1** Validate memory-stick message behavior for empty, present,
+- [x] **T-2.7 P1** Validate memory-stick message behavior for empty, present,
   missing, and existing-save states.
-- [ ] **T-2.8 P1** Validate intro PMF video/audio, skip input, teardown, and
+  - Done 2026-10-21: inserted/empty reaches title with eleven missing slots;
+    `SR_MEMSTICK_STATE=removed` matches PPSSPP device/FAT values and remains
+    on the memory-stick check without probing save paths; a protected valid
+    `ULUS10006001` fixture decrypts and loads, remains byte-identical, and
+    reaches title with UID `0x17c`.
+- [x] **T-2.8 P1** Validate intro PMF video/audio, skip input, teardown, and
   transition to title.
-- [ ] **T-2.9 P1** Validate keyboard and gamepad control through all title
+  - Done 2026-10-21: the premise was disproved for the deterministic
+    front-end route. PPSSPP reaches title with zero MPEG calls, and native
+    reaches title plus 20,000 presentations of the new-game opening with no
+    MPEG call. The main image references only card-movie `cdmv%02d.pmf` and
+    `no_data.pmf`; mandatory PMF validation remains T-5.3/T-6.7.
+- [x] **T-2.9 P1** Validate keyboard and gamepad control through all title
   menus.
-- [ ] **T-2.10 P1** Add title-idle and menu frame/audio acceptance checks to
+  - Done 2026-10-21: START opens the principal menu, DOWN selects LOAD GAME,
+    UP returns to NEW GAME, and CIRCLE enters the opening overlay. The same
+    logical mappings pass the public keyboard/gamepad test; a live Win32
+    keyboard run produced `0x0040`, `0x0010`, and `0x2000` edges while an
+    attached gamepad remained enumerated.
+- [x] **T-2.10 P1** Add title-idle and menu frame/audio acceptance checks to
   `REPRODUCTION.md`.
-- [ ] **T-2.11 P1** Complete three consecutive deterministic title/menu runs
+  - Done 2026-10-21: `frontend_acceptance.py` checks the three selector
+    checkpoints, title fade, init/title/new-game overlay route, scripted
+    inputs, exact fallback count, XAudio2 lifecycle, nonzero playback, and
+    zero dropped frames, device underruns, and failure markers.
+- [x] **T-2.11 P1** Complete three consecutive deterministic title/menu runs
   with no crash, watchdog, unknown HLE, or permissive fallback.
+  - Done 2026-10-21: three present-4200 runs passed with 266 identical
+    fallback targets and byte-identical captures at presents 3000, 3120,
+    3240, and 3360. All used XAudio2, dropped zero blocks, and reported zero
+    unimplemented HLEs, crashes, watchdogs, interpreter stops, or permissive
+    fallbacks.
 
 ## Phase 3 - Native service modules and overlays
 
-- [ ] **T-3.1 P0** Add a codegen module/symbol prefix so multiple generated
+- [x] **T-3.1 P0** Add a codegen module/symbol prefix so multiple generated
   PRXs can link into one executable.
-- [ ] **T-3.2 P0** Support multiple immutable dispatch tables with runtime
+  - Done 2026-10-21: `--symbol-prefix` namespaces every generated function,
+    dispatch descriptor, and registration symbol; public codegen tests cover
+    direct calls and table output.
+- [x] **T-3.2 P0** Support multiple immutable dispatch tables with runtime
   activation and deactivation.
-- [ ] **T-3.3 P0** Select generated tables by module path, hash, base, and
+  - Done 2026-10-21: the runtime validates sorted immutable tables, rejects
+    overlapping active addresses, supports idempotent activation, and removes
+    tables explicitly on module unload.
+- [x] **T-3.3 P0** Select generated tables by module path, hash, base, and
   active overlay identity.
-- [ ] **T-3.4 P0** Generate and link KJFS.
-- [ ] **T-3.5 P0** Generate and link ZLIB; measure decompression speedup and
+  - Done 2026-10-21: module policy binds a table only after exact
+    case-insensitive path/SHA-1, module name, expected base, and table-range
+    checks. Raw-LBN paths distinguish overlays sharing `0x09b43c00`.
+- [x] **T-3.4 P0** Generate and link KJFS.
+  - Done 2026-10-21: 527/527 functions, zero stubs; KJFS activates at
+    `0x09af5800` and removes ten present-600 fallback targets.
+- [x] **T-3.5 P0** Generate and link ZLIB; measure decompression speedup and
   restore a conservative fallback step cap.
-- [ ] **T-3.6 P0** Generate and link KCEJ_SOUND and validate all worker
+  - Done 2026-10-21: 121/121 functions, zero stubs; adding native ZLIB to
+    native KJFS reduced the measured present-600 run from about 26.8s to
+    11.3s. After sound conversion, the parent removed its 100-million override
+    and passes at the framework's one-million-step default.
+- [x] **T-3.6 P0** Generate and link KCEJ_SOUND and validate all worker
   threads/callbacks.
-- [ ] **T-3.7 P0** Generate and link the initial and title stage overlays.
-- [ ] **T-3.8 P1** Generate every overlay observed in the deterministic
+  - Done 2026-10-21: 904/904 functions, zero stubs; sound activates at
+    `0x09b15000`, its worker/callback route reaches title, and present-600
+    remains clean at the one-million-step cap.
+- [x] **T-3.7 P0** Generate and link the initial and title stage overlays.
+  - Done 2026-10-21: init emits 636/636 and title 997/997 functions with zero
+    stubs. Live-code verification keeps post-load patched functions
+    interpreted while unchanged functions run natively; both overlays render
+    correctly and reuse `0x09b43c00`.
+- [x] **T-3.8 P1** Generate every overlay observed in the deterministic
   front-end route.
-- [ ] **T-3.9 P1** Add overlay address-reuse tests with two modules sharing
+  - Done 2026-10-21: prologue emits 1,091/1,091 functions with zero stubs and
+    activates for raw path `disc0:/sce_lbn0x11780_size0x22f8e`.
+- [x] **T-3.9 P1** Add overlay address-reuse tests with two modules sharing
   `0x09b43c00`.
-- [ ] **T-3.10 P1** Record and classify all remaining interpreter fallback
+  - Done 2026-10-21: public dispatch tests reject simultaneous overlap, then
+    deactivate overlay A and activate overlay B at `0x09b43c00`.
+- [x] **T-3.10 P1** Record and classify all remaining interpreter fallback
   targets.
-- [ ] **T-3.11 P1** Set a reviewed release fallback allowlist and fail on new
+  - Done 2026-10-21: module-qualified v2 logs record 266 route targets: 36
+    init, 77 title, and 153 prologue.
+- [x] **T-3.11 P1** Set a reviewed release fallback allowlist and fail on new
   targets.
-- [ ] **T-3.12 P1** Benchmark boot time, host CPU, frame pacing, and dispatch
+  - Done 2026-10-21: `config/mga_frontend_fallbacks.toml` is checked exactly
+    by `fallback_report.py` and `frontend_acceptance.py`; three consecutive
+    runs passed with no missing or unexpected target.
+- [x] **T-3.12 P1** Benchmark boot time, host CPU, frame pacing, and dispatch
   misses before and after conversion.
+  - Done 2026-10-21: matched present-600 runs improved from
+    20,281/19,156 ms wall/CPU to 11,222/10,531 ms. Seven real-time menu
+    windows improved from 34.54 to 39.22 average FPS; the worst interval fell
+    from 2,187.80 to 271.16 ms.
 
 ## Phase 4 - Playable vertical slice
 
 - [ ] **T-4.1 P0** Define the reference route from title through tutorial or
   first mission.
+  - Progress 2026-10-21: deterministic broad-button input crosses the
+    prologue into `stage/st00/st00.prx`, the first mission overlay. Its exact
+    hash/raw-LBN identity and 1,000-function native table are integrated. The
+    route now passes 30,000 presentations; the dark briefing's intended
+    advance/skip control remains. A verified post-Forest `ULUS10006002` save
+    now provides a direct first-mission/gameplay route.
 - [ ] **T-4.2 P0** Enter a new game and complete initial deck/card setup.
 - [ ] **T-4.3 P0** Validate movement, camera, card selection, action execution,
   pause, and cancel/confirm behavior.
 - [ ] **T-4.4 P0** Validate combat, enemy turns, damage, failure, and retry on
   the reference route.
 - [ ] **T-4.5 P0** Validate every module/stage transition on the route.
+  - Progress 2026-10-21: init -> title -> prologue -> st00 is deterministic
+    and crash-free through present 30,000.
 - [ ] **T-4.6 P0** Save, exit, restart, load, and resume the route.
+  - Progress 2026-10-21: public completion and post-Forest saves decrypt and
+    load natively from isolated fixtures. The Forest save reaches two later
+    overlays and remains byte-identical; native save creation/resume remains.
 - [ ] **T-4.7 P1** Verify the native save loads in PPSSPP and a PPSSPP save
   loads natively.
+  - Progress 2026-10-21: GameFAQs #10243 and #8725 are region-verified
+    ULUS-10006 fixtures. Cross-emulator save creation remains.
 - [ ] **T-4.8 P1** Add representative software-renderer golden checkpoints.
 - [ ] **T-4.9 P1** Audit imports, computed dispatch, and fallback coverage for
   the complete route.
+  - Progress 2026-10-21: st00 has zero trapping stubs and the current extended
+    route records 423 module-qualified interpreter targets. Review and exact
+    allowlisting remain.
 - [ ] **T-4.10 P1** Complete a 30-minute vertical-slice stability run.
 - [ ] **T-4.11 P1** Repeat the clean-memstick route three times without an
   unknown HLE, host crash, deadlock, or permissive fallback.
@@ -269,23 +352,59 @@ The next ready P0 work is:
 - [ ] **T-6.1 P0** Build software golden checkpoints covering geometry,
   blending, depth, stencil, texture formats, framebuffer effects, text, and
   movies.
-- [ ] **T-6.2 P0** Enable and validate the D3D12 renderer for Metal Gear Acid.
+- [x] **T-6.2 P0** Enable and validate the D3D12 renderer for Metal Gear Acid.
+  - Done 2026-10-21: added the `clang-cl-d3d12` preset, validated the exact
+    title/menu/prologue route at 1x, and passed the same functional frame,
+    input, audio, module, and fallback acceptance gate.
 - [ ] **T-6.3 P0** Compare D3D12 output against software goldens at native
   resolution.
+  - Progress 2026-10-21: all four title checkpoints are visually correct and
+    pass semantic metrics. They are not pixel-identical: title frames have
+    maximum channel deltas of 18-25 with about 13.6% of pixels above delta 8;
+    the transition has maximum delta 9.
 - [ ] **T-6.4 P1** Validate supported internal resolutions and presentation
   layouts.
-- [ ] **T-6.5 P1** Resolve or document GE commands `0xf0-0xf9`.
+- [x] **T-6.5 P1** Resolve or document GE commands `0xf0-0xf9`.
+  - Done 2026-10-21: MGA-F-022 classifies the range as immediate-vertex
+    state; zero initialization is supported and nonzero VAP submission fails
+    explicitly.
 - [ ] **T-6.6 P1** Validate frame pacing through menus, movies, gameplay, and
   loading.
+  - Progress 2026-10-21: the D3D12 title/prologue acceptance route completes
+    in 13.9s with real-time pacing enabled for its final 900 presentations.
+    Gameplay, PMF, and longer loading transitions remain.
 - [ ] **T-6.7 P1** Validate XAudio2 latency, SAS/ATRAC behavior, underruns, and
   movie synchronization.
+  - Progress 2026-10-21: blocking output retains three guest buffers or two
+    device queues. Device-only padding does not advance the mixer; load-gap
+    resume prebuffers 4,096 real frames and fades boundaries at fixed
+    44.1 kHz. Acceptance reports one transition, seven padding blocks,
+    `resynced=3072`, `underruns=0`, and `dropped=0`. The Forest map-load
+    transition is much improved and mission audio is clean. Campaign
+    ATRAC/SAS and PMF synchronization remain.
 - [ ] **T-6.8 P1** Profile and remove remaining release-critical interpreter
   and HLE hot spots.
+  - Progress 2026-10-21: live-code-mismatched generated functions are marked
+    interpreter-only by function identity, preventing recursive
+    interpreter/native wrapper bounce. A 50,000-presentation
+    init/title/prologue route exits cleanly with no host crash or interpreter
+    stop. Native handoff depth is now capped at 256; deeper execution uses a
+    scheduler-aware interpreter with chunked budgets, avoiding fiber-stack
+    growth on the extended st00 route.
 - [ ] **T-6.9 P1** Run repeated stage-transition and save/load soak tests.
+  - Progress 2026-10-21: completion and post-Forest fixtures load without
+    mutation; the Forest route reaches two later overlays and exits normally.
 - [ ] **T-6.10 P1** Run a complete-campaign soak while monitoring memory,
   handles, callbacks, and thread count.
 - [ ] **T-6.11 P2** Validate focus changes, minimize/restore, controller
   hot-plug, and multi-monitor behavior.
+- [x] **T-6.12 P0** Add a live framerate diagnostic and remove
+  front-end-critical software-renderer waste.
+  - Done 2026-10-21: `SR_FPS_COUNTER=1` reports rolling FPS/frame time in GDI,
+    Vulkan, and D3D12 titles. Exact bilinear fast paths, through-mode
+    specialization, and a per-primitive decoded-texel cache keep all software
+    checkpoint hashes unchanged while raising measured pacing from 39.22 to
+    46.35 FPS. D3D12 reaches 162.55 FPS host presentation throughput.
 
 ## Phase 7 - CI and source release
 

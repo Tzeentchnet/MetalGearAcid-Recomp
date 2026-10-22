@@ -15,6 +15,8 @@ The reduced machine-readable report is
 [reference/ppsspp_frontend.json](reference/ppsspp_frontend.json).
 The corresponding native report is
 [reference/native_frontend.json](reference/native_frontend.json).
+The deterministic native menu report is
+[reference/native_frontend_menu.json](reference/native_frontend_menu.json).
 
 ## Stage checkpoints
 
@@ -47,11 +49,16 @@ The native run reaches present 600 with:
 - zero host crashes;
 - zero watchdogs;
 - zero interpreter stops; and
-- 48 unique interpreter fallback targets.
+- 82 module-qualified overlay fallback targets at present 600.
 
 The remaining one-UID title discrepancy occurs after the aligned first-stage
 load and requires a follow-up object-allocation audit. It does not prevent the
 current title gate.
+
+KJFS, ZLIB, sound, init, and title now activate generated native tables before
+this gate. The fallback count is higher than the old address-only count because
+the v2 log preserves overlay identity and records nested live-code-verification
+fallbacks rather than collapsing overlapping addresses.
 
 ## Call and HLE coverage
 
@@ -81,6 +88,9 @@ Selected media/audio counts:
 | `sceMpegAtracDecode` | `0` |
 
 This route does not exercise MPEG before or during the captured title state.
+An extended native route through 20,000 presentations of the new-game opening
+also makes zero MPEG calls, confirming that the expected front-end "intro PMF"
+is not part of this title path. Campaign/card PMF validation remains separate.
 
 ## Diagnostics
 

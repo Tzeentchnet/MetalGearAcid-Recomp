@@ -26,12 +26,25 @@
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
       }
+    },
+    {
+      "name": "clang-cl-d3d12",
+      "inherits": "clang-cl",
+      "displayName": "clang-cl + D3D12 (x64, Ninja, Release)",
+      "description": "D3D12 renderer build. Pass SDL3_DIR or CMAKE_PREFIX_PATH to an SDL3 development package.",
+      "cacheVariables": {
+        "MGA_ENABLE_D3D12": "ON"
+      }
     }
   ],
   "buildPresets": [
     {
       "name": "clang-cl",
       "configurePreset": "clang-cl"
+    },
+    {
+      "name": "clang-cl-d3d12",
+      "configurePreset": "clang-cl-d3d12"
     }
   ]
 }

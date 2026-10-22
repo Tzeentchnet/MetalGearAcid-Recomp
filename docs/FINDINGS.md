@@ -67,8 +67,9 @@ The main PRX has:
 | Import stubs | `117` |
 | Import libraries | `19` |
 
-After the VFPU7 additions in MGA-F-010, codegen emits all `9,913` functions
-with zero trapping stubs.
+After the VFPU7 additions in MGA-F-010, the analyzer still discovers `9,913`
+functions. Codegen emits `9,914` native entries with zero trapping stubs after
+adding the verified computed callback entry from MGA-F-034.
 
 ## Standalone boot
 
@@ -387,6 +388,10 @@ limit around `0x09b079f4`.
 A 100-million-step per-call cap allowed boot to continue through module and
 stage initialization. This is a bring-up setting, not a performance solution.
 
+Resolved for the deterministic front end in MGA-F-041: native ZLIB and sound
+now pass at the framework's one-million-step default. Per-module policy remains
+useful for future uncompiled campaign overlays.
+
 Upstream should support:
 
 - per-module or per-call budgets;
@@ -514,7 +519,7 @@ Three source-only profiles now exist:
 - `mga_neutral.pad` - no scripted input;
 - `mga_boot.pad` - bounded START pulses for logo/title advancement; and
 - `mga_menu_probe.pad` - the boot pulses followed by START, DOWN, UP, and
-  CROSS probes.
+  CIRCLE probes.
 
 A header-only script must be authoritative. Previously the native parser saw
 zero events and fell through to its automatic START pulse, so "neutral" was
@@ -578,8 +583,8 @@ Using the empty native fixture, `mga_boot.pad`, and
 | `title` | `0x17b` | `0x1c100` | `0x09b67b20` |
 
 It exits at present 600 with no unimplemented HLE, host crash, watchdog, or
-interpreter stop. The dispatch-miss log contains 48 unique expected dynamic
-module targets.
+interpreter stop. After Phase 3 conversion, the present-600 log contains 82
+module-qualified overlay fallback targets and no service-module fallback.
 
 PPSSPP gives the title module UID `0x17c`; native is one lower after the
 correctly aligned first stage. This narrows the next UID audit to object
@@ -612,3 +617,424 @@ sr_syscall_lib(s, "IoFileMgrForUser", 0x810c4bc3)
 ```
 
 The library-qualified build retains the capture-free present-600 title gate.
+
+### MGA-F-032 - Memory-stick presence is separate from host-path existence
+
+Pointing `SR_FSDIR` at a nonexistent directory did not model a removed card.
+The old runtime always returned inserted/assigned values from `sceIoDevctl`,
+so an absent host root behaved exactly like an inserted empty stick.
+
+`SR_MEMSTICK_STATE=removed` now matches PPSSPP v1.20.4:
+
+| Query | Inserted | Removed |
+|---|---:|---:|
+| Driver status `0x02025801` | `4` | `1` |
+| Device state `0x02025806` | `1` | `2` |
+| FAT state `0x02425823` | `1` | `0` |
+| Capacity/write-protect query | success | `0x80010013` |
+
+Insert/FAT callbacks are registered but are not notified immediately while
+removed. A synthetic state test covers the default, inserted, removed, and
+invalid-value paths.
+
+Metal Gear Acid polls device state on the initial memory-stick screen. In the
+removed state it remains on `Checking Memory Stick Duo`, performs no save-slot
+`Getstat`, and reaches the bounded presentation exit without a crash or
+permissive fallback.
+
+### MGA-F-033 - A valid existing save adds one title-route UID
+
+A protected North American `ULUS10006001` fixture contains `PARAM.SFO`,
+`ICON0.PNG`, and encrypted `00000000.000`. Native savedata decrypts and loads
+the payload, then reaches title without mutating the fixture inventory.
+
+The observed title UIDs are:
+
+| Fixture | Title UID | Dispatch misses |
+|---|---:|---:|
+| Inserted, no save | `0x17b` | `50` |
+| Inserted, valid slot `001` | `0x17c` | `53` |
+
+The existing-save path therefore accounts for one additional game-visible
+kernel object and happens to align the title UID with the empty-memstick PPSSPP
+oracle. It does not explain the one-UID difference in the empty native route.
+
+### MGA-F-034 - Interpreted call chains must re-enter native dispatch
+
+The title overlay calls the main-module target `0x08919f10` from inside an
+already-running interpreted call chain. Adding that verified computed target
+to the generated dispatch table was necessary but not sufficient: the outer
+dispatcher was not consulted again while the interpreter followed nested
+guest calls.
+
+The interpreter now stops at any nested target present in the active native
+table. The runtime executes that generated function, restores the guest return
+PC from `$ra`, and resumes the original interpreted call chain without
+replacing its outer return target.
+
+The next new-game overlay then exercised VFPU compute opcode `0xd0038087`.
+Reference fallback now:
+
+- reuses the tested `sr_vfpu_interp` compute/prefix engine;
+- implements `lv.s`, `sv.s`, `lv.q`, and `sv.q` memory forms; and
+- implements VFPU data/control transfers through COP2.
+
+Synthetic interpreter coverage locks both an interpreted-to-native nested call
+and VFPU compute/load/store continuation. The previously fatal title-menu
+transition now completes without an interpreter stop.
+
+### MGA-F-035 - CIRCLE confirms the North American title menu
+
+The initial menu profile assumed CROSS (`0x4000`) confirmed NEW GAME. Exact
+presentation captures showed that DOWN and UP moved the selector, but CROSS
+left NEW GAME unchanged. CIRCLE (`0x2000`) enters the opening overlay.
+
+The deterministic route is:
+
+| Presentation | State |
+|---:|---|
+| `3000` | NEW GAME selected |
+| `3120` | LOAD GAME selected after DOWN |
+| `3240` | NEW GAME reselected after UP |
+| `3360` | title fading after CIRCLE |
+
+The opening overlay has UID `0x183`, allocation `0x1c600`, and GP
+`0x09b67860`. A live Win32 keyboard run produced the same DOWN, UP, and CIRCLE
+PSP masks and reached that overlay while an attached gamepad remained
+enumerated. The public input test covers the equivalent keyboard and gamepad
+bindings.
+
+### MGA-F-036 - The deterministic front end has no intro PMF
+
+The PPSSPP title oracle reports zero MPEG calls. Native runs likewise report
+zero MPEG calls through title and through 20,000 presentations of the
+new-game opening. The main image contains only the PMF references
+`cdmv%02d.pmf` and `no_data.pmf`; the former addresses card/campaign movies,
+not a pre-title intro.
+
+The Phase 2 "intro PMF" premise is therefore not applicable to this route.
+Actual PMF playback, skip, teardown, audio/video synchronization, and campaign
+coverage remain Phase 5/6 work.
+
+### MGA-F-037 - The title-menu acceptance route is byte-repeatable
+
+`frontend_acceptance.py` checks the route, pad masks, the exact reviewed
+fallback allowlist, zero failure/permissive markers, XAudio2 startup/shutdown,
+nonzero playback, zero dropped blocks, and title-specific selector regions.
+
+Three consecutive present-4200 runs passed. Captures at presentations 3000,
+3120, 3240, and 3360 had one SHA-256 value per checkpoint across all three
+runs. XAudio2 played between 347,392 and 349,696 frames with zero dropped
+blocks. Underruns remain nonzero and are tracked by the Phase 6 audio/performance
+work rather than hidden by the functional Phase 2 gate.
+
+### MGA-F-038 - Generated modules use identity-bound immutable tables
+
+Codegen now accepts a C symbol prefix and emits:
+
+- prefixed function names;
+- one sorted immutable `SrDispatchTable`;
+- a prefixed registration symbol; and
+- no conflicting `sr_register_all` symbol.
+
+The runtime can activate up to 32 tables. Activation validates descriptor
+shape, ordering, alignment, and address collisions. Module policy activates a
+table only after exact path/SHA-1, module name, expected base, and
+table-address-range checks. Unload deactivates it before releasing guest
+memory.
+
+The deterministic route uses:
+
+| Module | Base | Native entries | Stubs |
+|---|---:|---:|---:|
+| KJFS | `0x09af5800` | `527` | `0` |
+| ZLIB | `0x09b05200` | `121` | `0` |
+| KCEJ_SOUND | `0x09b15000` | `904` | `0` |
+| init | `0x09b43c00` | `636` | `0` |
+| title | `0x09b43c00` | `997` | `0` |
+| prologue | `0x09b43c00` | `1,091` | `0` |
+
+Init, title, and prologue use distinct raw-LBN paths and hashes at the same
+guest base. Public tests reject simultaneous overlap, deactivate the first
+table, then activate a second table at `0x09b43c00`.
+
+### MGA-F-039 - Main applies a second relocation pass to stage code
+
+Activating a stage table generated directly from the extracted PRX produced a
+black loop. Instruction watching showed main rewriting stage code after module
+start. For example, the halfword at `0x09b45ad8` changed while main executed
+`0x08804f80`.
+
+A captured init link pass contains 675 relocation records and changes 680
+words. Mutations include:
+
+- 547 JAL instructions;
+- 53 LUI immediates;
+- 67 load/store/add-immediate operands; and
+- eight words whose opcode changes from NOP/SPECIAL to J.
+
+These are title-owned links to main-module code/data, not the standard PRX
+relocations already applied by the generic loader. Generated overlays
+therefore verify each function's live guest instructions on first use.
+Unchanged functions execute natively; a function changed by the title linker
+enters explicit interpreter fallback against the patched guest image.
+
+This preserves rendering and menu behavior without silently executing stale
+constants. A future title-specific offline linker could convert more of these
+verified fallbacks to native code.
+
+### MGA-F-040 - Overlapping overlay fallbacks require module identity
+
+An address-only miss log collapsed different overlay functions at the shared
+`0x09b43c00` base. Version 2 miss logs retain `(module prefix, address)`.
+
+The final deterministic route contains 266 reviewed targets:
+
+| Module | Targets |
+|---|---:|
+| `mga_stage_init` | `36` |
+| `mga_stage_title` | `77` |
+| `mga_stage_prologue` | `153` |
+
+`config/mga_frontend_fallbacks.toml` records exact module hashes and target
+sets. Both `fallback_report.py` and `frontend_acceptance.py` fail on a missing
+or unexpected target. Three consecutive runs matched all 266 entries and the
+four established frame hashes exactly.
+
+### MGA-F-041 - Native services materially reduce front-end cost
+
+Matched present-600 runs on the same build measured:
+
+| Mode | Wall time | Host CPU time | Fallback cap |
+|---|---:|---:|---:|
+| All configured modules disabled | `20,281 ms` | `19,156.25 ms` | `100,000,000` |
+| Native services/verified overlays | `11,222 ms` | `10,531.25 ms` | `1,000,000` |
+
+The native route is about 1.81x faster and removes the parent project's
+100-million-step bring-up override.
+
+Across seven real-time 120-present menu windows:
+
+| Mode | Mean FPS | Mean p95 frame | Worst frame |
+|---|---:|---:|---:|
+| All interpreted | `34.54` | `156.19 ms` | `2,187.80 ms` |
+| Native/hybrid | `39.22` | `153.09 ms` | `271.16 ms` |
+
+Software rendering and the remaining verified overlay fallbacks still prevent
+stable 60 FPS. That is Phase 6 work; the conversion nonetheless removes the
+largest transition stall and materially reduces CPU cost.
+
+### MGA-F-042 - Window-title FPS diagnostics work on every presenter
+
+`SR_FPS_COUNTER=1` updates the app window title every 500 ms with rolling
+presentation rate and average frame time:
+
+```text
+Metal Gear Acid | 46.4 FPS | 21.55 ms
+```
+
+The counter uses a tested, renderer-independent QPC accumulator. GDI calls
+`SetWindowText`; Vulkan and D3D12 update their SDL3 windows. It is opt-in and
+does not change guest timing or rendering.
+
+### MGA-F-043 - Exact software sampling optimizations improve the front end
+
+GE profiling showed software rasterization consuming 94-96% of menu/prologue
+window time, while the window blit itself remained below 1 ms.
+
+Three pixel-exact changes remove redundant work:
+
+1. bilinear sampling reads one texel when both weights are zero and two when
+   either axis weight is zero;
+2. through-mode triangles no longer interpolate reciprocal-W, fog, or unused
+   depth values; and
+3. each software primitive caches decoded texels, reusing neighbors across
+   bilinear samples.
+
+All four established software checkpoint SHA-256 values remain unchanged and
+the exact front-end acceptance gate passes. Real-time seven-window pacing
+improved from:
+
+| Metric | Before | Optimized |
+|---|---:|---:|
+| Mean FPS | `39.22` | `46.35` |
+| Mean frame time | `25.73 ms` | `21.73 ms` |
+| Mean p95 frame | `153.09 ms` | `127.54 ms` |
+| Worst frame | `271.16 ms` | `247.42 ms` |
+
+The complete accepted route fell from about 108.6s to 83.0s on the validation
+machine.
+
+### MGA-F-044 - D3D12 is the practical front-end performance path
+
+The dedicated `clang-cl-d3d12` preset builds against an SDL3 development
+package without replacing the software-reference build. At 1x native
+resolution on an RTX 5070, the same deterministic route measured:
+
+| Metric | Optimized software | D3D12 |
+|---|---:|---:|
+| Route wall time | `83.0 s` | `14.1 s` |
+| Mean host presentation FPS | `46.35` | `162.55` |
+| Mean frame time | `21.73 ms` | `6.37 ms` |
+| Mean p95 frame | `127.54 ms` | `21.41 ms` |
+
+D3D12 menu and prologue captures are visually correct and pass the functional
+acceptance metrics. Native-resolution title captures are not pixel-identical
+to software: 13.5-13.6% of title pixels exceed channel delta 8, with maximum
+delta 18-25; the fade frame has 0.61% above delta 8 and maximum delta 9.
+Those small color differences require the explicit tolerance review in
+T-6.3, but they do not block D3D12 as the recommended diagnostic/playability
+renderer.
+
+### MGA-F-045 - Configuration captions must use the compiled title
+
+The explicit `--configure` and `--configure-input` paths already used
+`SR_GAME_TITLE`, but the automatic first-run graphics/controller dialogs and
+native message-box caption still said `Killzone: Liberation`.
+
+All GUI entry points now use the same compile-time title with a generic
+`PSP Recomp` fallback. Fresh-process validation reports:
+
+```text
+Metal Gear Acid Graphics
+Metal Gear Acid Controller
+```
+
+Killzone builds retain their own caption through their existing
+`SR_GAME_TITLE` definition.
+
+### MGA-F-046 - Failed live-code wrappers must become interpreter-only
+
+An interactive D3D12 run crashed after the prologue with Windows exception
+`0xc00000fd` (stack overflow). The fault itself was in `__chkstk`; a protected
+stack scan showed repeating `sr_interpret_direct_module` and
+`sr_interpret_fallback` frames while the guest stack pointer stayed
+unchanged.
+
+The recursion was host-only. After a generated overlay function failed its
+live-code check, the wrapper entered the interpreter but remained visible in
+the active native dispatch table. When interpreted control reached that
+address again, it handed control back to the same wrapper, which immediately
+re-entered the interpreter.
+
+Codegen now marks the exact failed generated function pointer as
+interpreter-only before tail-entering live guest code. Dispatch suppresses
+that pointer while retaining the active table's module identity. A
+replacement overlay at the same guest address remains native because it has
+a different function pointer; the public dispatch-table test covers this
+case.
+
+The exact D3D12 init/title/prologue route now reaches the configured
+50,000-presentation limit in 108.8s with no host crash, interpreter stop, or
+permissive fallback.
+
+### MGA-F-047 - Blocking audio must not drain the host device
+
+The FPS counter could report 150 or more presentations per second while
+audio still stuttered. Historical real-time logs confirmed 145-177 XAudio2
+underruns in roughly eight seconds, so presentation throughput was not a
+valid audio-health proxy.
+
+Normal `sceAudioOutput*Blocking` channels waited until their queued depth
+reached zero. That wakes the producer only after XAudio2 consumes the final
+submitted block, guaranteeing a gap at each guest audio buffer.
+
+The accepted policy now:
+
+1. retains three guest buffers or two complete host-device queues of real
+   audio before blocking;
+2. submits device-only preservation silence without advancing the guest
+   mixer timeline or discarding late samples;
+3. fades across real/silence boundaries;
+4. after a load gap, accumulates 4,096 real frames before resuming, with a
+   500 ms fallback for short effects; and
+5. keeps playback fixed at 44.1 kHz without adaptive speed/pitch changes.
+
+The accepted D3D12 route now reports:
+
+```text
+played=242944 frames (5508.93 ms)
+clock_drift=-44.80 ms
+device_buffers=6..8
+dropped=0
+resynced=3072
+silent_blocks=2
+underruns=0
+padding_blocks=7
+padding_transitions=1
+```
+
+`frontend_acceptance.py` now rejects any device underrun in addition to
+dropped guest frames.
+
+The Forest-save mission transition is a harsher load case. The original
+full-queue padding path produced roughly 93-293 real/silence transitions and
+audible static bursts. The final path completed the same manually driven
+transition with 8 transitions and 67,456 resynced frames; the user reported
+that transitions were "much better" and mission audio remained clean.
+
+### MGA-F-048 - The first post-prologue overlay requires PSP scratchpad RAM
+
+The first live run beyond the prologue loaded another `mgp_stage` module:
+
+| Property | Value |
+|---|---|
+| Disc file | `PSP_GAME/USRDIR/stage/st00/st00.prx` |
+| Raw path | `disc0:/sce_lbn0x11ad0_size0x1fb51` |
+| SHA-1 | `7899000a805ae773838b6c11741e62af46d14338` |
+| Base | `0x09b43c00` |
+| Allocation | `0x19200` |
+| Generated entries | 1,000 |
+| Trapping stubs | 0 |
+
+Before st00 had an active table, its computed callback entries were reported
+as unqualified fallbacks. After native integration, execution reached a store
+at `0x00013fe0`. This is not a wild pointer: st00 uses the PSP's 16 KiB
+scratchpad at `0x00010000-0x00013fff` for transient mission data.
+
+The runtime now maps scratchpad separately from VRAM and user RAM, including
+the PSP physical aliases used by guest code. Native memory macros and runtime
+interpreter spans share the mapping. The public interpreter test covers
+native/aliased reads plus an interpreted write at the final valid word.
+
+### MGA-F-049 - Hybrid handoff depth must be bounded at long-lived loops
+
+Live-code verification creates legitimate interpreter/native crossings, but
+long-lived stage loops can retain those host continuations across scheduler
+fiber switches. st00 reached handoff depth 1,024 in a deterministic 37-second
+fast-forward run and eventually exhausted the 64 MiB fiber stack.
+
+The runtime now:
+
+1. caps native handoff depth at 256;
+2. executes deeper calls in the interpreter without another host call frame;
+3. exports interpreter state to the scheduler every 256 instructions;
+4. treats the one-million-step limit as a scheduler-mode chunk boundary while
+   preserving strict failure in standalone tests; and
+5. implements the fallback instructions reached by the deeper path:
+   `vnop`, all `vf2i` modes, `vi2f`, all VFPU7 packed conversions, and
+   `bvf`/`bvt` plus likely variants.
+
+The cleaned D3D12 broad-button route reaches init, title, prologue, and st00,
+logs the depth cap once, and exits normally at present 30,000 after 152.8s.
+There are no host crashes, memory faults, unimplemented instructions,
+interpreter stops, or permissive fallbacks.
+
+### MGA-F-050 - Verified public saves bypass the scripted opening
+
+Two North American `ULUS-10006` saves are preserved only in ignored local
+build storage:
+
+| Source | Folder | Progress | SHA-256 / status |
+|---|---|---|---|
+| GameFAQs #10243 | `ULUS10006001` | Completion data, Normal, 32:04:46, one clear | Existing protected fixture; byte-identical after native load |
+| GameFAQs #8725 | `ULUS10006002` | After Forest/tutorial, Normal, third playthrough | ZIP `fab05c1a904144dea3395734b2db00a27b6d8ae91ac3bf405fb357ce728c1de2` |
+
+The #8725 ZIP contains only `00000000.000`, `ICON0.PNG`, and `PARAM.SFO`;
+its paths were validated before extraction. The folder name must remain
+`ULUS10006002`. It appears under LOAD GAME rather than initial CONTINUE.
+
+A disposable native fixture loads the save, reaches the `0x18a00` and
+`0x23200` post-save overlays, exits normally, and remains byte-identical.
+This provides a repeatable gameplay/audio route without replaying the long
+scripted prologue.

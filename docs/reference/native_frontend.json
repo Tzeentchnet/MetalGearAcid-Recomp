@@ -1,11 +1,14 @@
 {
-  "dispatch_misses": 48,
+  "audio": null,
+  "dispatch_misses": 82,
   "failures": {
     "host_crashes": 0,
     "interpreter_stops": 0,
+    "permissive_fallbacks": 0,
     "unimplemented_hle": 0,
     "watchdogs": 0
   },
+  "pad_events": [],
   "padscript": "mga_boot.pad",
   "present_limit": 600,
   "reached_present": 600,

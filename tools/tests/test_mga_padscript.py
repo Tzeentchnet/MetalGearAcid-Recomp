@@ -37,7 +37,7 @@ class PadScriptTests(unittest.TestCase):
         self.assertEqual(len(menu), 14)
         self.assertEqual(
             [event.mask for event in menu[-4:]],
-            [0x0008, 0x0040, 0x0010, 0x4000],
+            [0x0008, 0x0040, 0x0010, 0x2000],
         )
 
     def test_rejects_missing_header(self):

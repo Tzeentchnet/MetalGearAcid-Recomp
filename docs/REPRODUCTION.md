@@ -15,13 +15,16 @@ Set-Location MetalGearAcid-Recomp
 
 GitHub authentication is required for the private parent.
 
-The parent currently pins tested fork tip `7980eb7`. The relevant sequence is:
+The parent currently pins tested fork tip `2bf37a0`. The relevant sequence is:
 
 - `51aa462` - runtime PRX modules and synthetic runtime tests;
 - `1225147` - runtime import patches and initial VFPU7 codegen;
 - `abad642` - UID/file fidelity, module policy, library dispatch, pad neutrality,
   variable-import rejection, and GE immediate state; and
-- `7980eb7` - library-qualified generated imports and executable VFPU7 vectors.
+- `7980eb7` - library-qualified generated imports and executable VFPU7 vectors;
+- `2bf37a0` - native overlay dispatch, live-code fallback, scratchpad memory,
+  scheduler-aware interpreter continuation, renderer/FPS diagnostics,
+  memory-stick state, and continuous XAudio2 buffering.
 
 ## 1. Extract the verified disc
 
@@ -47,11 +50,21 @@ python tools\mga\gen.py
 Expected codegen result:
 
 ```text
-9913/9913 functions
-0 trapping stubs
+main:           9914/9914 functions, 0 trapping stubs
+KJFS:             527/527 functions, 0 trapping stubs
+ZLIB:             121/121 functions, 0 trapping stubs
+KCEJ_SOUND:       904/904 functions, 0 trapping stubs
+stage/init:       636/636 functions, 0 trapping stubs
+stage/title:      997/997 functions, 0 trapping stubs
+stage/prologue: 1091/1091 functions, 0 trapping stubs
+stage/st00:      1000/1000 functions, 0 trapping stubs
 46628 relocations
 117 imports across 19 libraries
 ```
+
+The analyzer discovers 9,913 conventional entries. The title config supplies
+the verified computed callback entry `0x08919f10`, bringing generated native
+dispatch to 9,914 entries.
 
 Generated files include:
 
@@ -59,7 +72,8 @@ Generated files include:
 - `build/mga/gen/mga_imports.toml`;
 - `build/mga/gen/mga_functions.toml`;
 - split `mga_recomp_*.c` translation units; and
-- `mga_recomp_register.c`, including guest-image import patches.
+- `mga_recomp_register.c`, including guest-image import patches; and
+- prefixed generated modules under `build/mga/modules/<id>/`.
 
 ## 3. Build
 
@@ -82,6 +96,38 @@ The parent-compiled policy in `tools/mga/module_policy.c` pins boot service
 modules by guest path, SHA-1, expected module name, and guest/HLE mode. A hash
 or name mismatch fails module load. Unlisted plaintext stage overlays remain
 guest-executed; unlisted encrypted modules are rejected.
+
+Build the recommended D3D12 performance path separately so the software
+reference remains available:
+
+```powershell
+cmake --preset clang-cl-d3d12 `
+  -DSDL3_DIR="C:\path\to\SDL3\cmake"
+cmake --build --preset clang-cl-d3d12 `
+  --target mga_driver --parallel
+```
+
+Select it with:
+
+```powershell
+$env:SR_GPU = "d3d12"
+$env:SR_D3D12_SCALE = "1"
+$env:SR_FPS_COUNTER = "1"
+```
+
+For unattended runs from a fresh output directory, set
+`SR_GRAPHICS_CONFIG=0` and `SR_INPUT_CONFIG=0` to suppress first-run dialogs.
+
+Configuration captions can be checked directly:
+
+```powershell
+out\build\clang-cl\mga.exe --configure
+out\build\clang-cl\mga.exe --configure-input
+```
+
+Expected titles are `Metal Gear Acid Graphics` and
+`Metal Gear Acid Controller`; no Metal Gear Acid dialog should refer to
+Killzone.
 
 ## 4. Capture the PPSSPP entry contract
 
@@ -204,7 +250,7 @@ Profiles:
 |---|---|
 | `mga_neutral.pad` | Strict no-input baseline |
 | `mga_boot.pad` | Periodic START pulses for boot/logo/title advancement |
-| `mga_menu_probe.pad` | Boot pulses plus deterministic START/DOWN/UP/CROSS probes |
+| `mga_menu_probe.pad` | Boot pulses plus deterministic START/DOWN/UP/CIRCLE probes |
 
 The PPSSPP and native columns intentionally differ. PPSSPP reads vblank
 timing; native reads presentation timing. Header-only neutral scripts suppress
@@ -252,16 +298,40 @@ Select the roots:
 ```powershell
 $env:PSPRECOMP_MEMSTICK = "$PWD\build\mga\fixtures\empty-ppsspp"
 $env:SR_FSDIR = "$PWD\build\mga\fixtures\empty-native"
+$env:SR_MEMSTICK = "$PWD\build\mga\fixtures\empty-native\ms0"
+$env:SR_MEMSTICK_STATE = "inserted"
 ```
 
 The tool refuses to overwrite an existing output path. Every run therefore
 uses an isolated clone. `.mga-fixture.json` detects accidental fixture
 mutation, but it and all save files remain protected/local.
 
+Exercise a physically removed card without changing the host fixture:
+
+```powershell
+$env:SR_MEMSTICK_STATE = "removed"
+```
+
+This must remain on the memory-stick check and make no save-slot `Getstat`
+calls. Restore `inserted` for empty and existing-save cases. Existing-save
+validation uses a protected, PSP/PPSSPP-compatible `ULUS10006001` template;
+after the run, `memstick.py verify` must still pass.
+
+For a post-tutorial route, GameFAQs save #8725 is North American
+`ULUS10006002` after Forest. Its verified ZIP SHA-256 is:
+
+```text
+fab05c1a904144dea3395734b2db00a27b6d8ae91ac3bf405fb357ce728c1de2
+```
+
+Keep the folder name unchanged. It appears under LOAD GAME, not initial
+CONTINUE. Clone the protected template with `memstick.py create`; never run
+against the downloaded source directory.
+
 Current parent-tool test result:
 
 ```text
-Ran 10 tests
+Ran 21 tests
 OK
 ```
 
@@ -319,6 +389,8 @@ call trace, memstick, or captures.
 ```powershell
 $env:PSP_ISO = "C:\path\to\Metal Gear Acid (USA).iso"
 $env:SR_FSDIR = "$PWD\build\mga\fixtures\empty-native"
+$env:SR_MEMSTICK = "$env:SR_FSDIR\ms0"
+$env:SR_MEMSTICK_STATE = "inserted"
 $env:SR_PADSCRIPT = "$PWD\config\mga_boot.pad"
 $env:SR_EXIT_AFTER_PRESENT = "600"
 $env:SR_INTERP_MISS_LOG = "$PWD\build\mga\native-title\dispatch-misses.txt"
@@ -338,8 +410,11 @@ presentation limit reached at present 600
 0 host crashes
 0 watchdogs
 0 interpreter stops
-48 unique fallback targets
+0 permissive fallbacks
+82 module-qualified overlay fallback targets
 ```
+
+The log must mark KJFS, ZLIB, KCEJ_SOUND, init, and title as `(native)`.
 
 The title log must not contain `unhandled command 0xf0` through `0xf9`.
 Nonzero `VAP` immediate drawing remains explicitly unsupported and must surface
@@ -348,7 +423,161 @@ as a GE diagnostic if a later route uses it.
 Reduce the protected log with `tools\mga\native_summary.py` as documented in
 [PPSSPP_REFERENCE.md](PPSSPP_REFERENCE.md).
 
-## 11. Framework tests
+## 11. Deterministic title-menu acceptance
+
+Create a fresh output directory, then run the presentation-timed menu route.
+The first 3,300 presentations are fast-forwarded; the final 900 run in real
+time so XAudio2 behavior is measured:
+
+```powershell
+$run = (New-Item -ItemType Directory -Force `
+  build\mga\frontend-acceptance-1).FullName
+$exe = (Resolve-Path out\build\clang-cl\mga.exe).Path
+$image = (Resolve-Path build\mga\gen\mga_image.bin).Path
+
+$env:PSP_ISO = "C:\path\to\Metal Gear Acid (USA).iso"
+$env:SR_FSDIR = "$PWD\build\mga\fixtures\empty-native"
+$env:SR_MEMSTICK = "$env:SR_FSDIR\ms0"
+$env:SR_MEMSTICK_STATE = "inserted"
+$env:SR_PADSCRIPT = "$PWD\config\mga_menu_probe.pad"
+$env:SR_FAST_FORWARD_PRESENT = "3300"
+$env:SR_EXIT_AFTER_PRESENT = "4200"
+$env:SR_FBCAPTURE_PRESENTS = "3000,3120,3240,3360"
+$env:SR_PADLOG = "1"
+$env:SR_AUDIO_LOG = "1"
+$env:SR_INTERP_MISS_LOG = "$run\dispatch-misses.txt"
+
+Push-Location $run
+& $exe --boot $image 08804000 0880432c none --gui `
+  1> stdout.log 2> stderr.log
+$runExit = $LASTEXITCODE
+Pop-Location
+if ($runExit -ne 0) { exit $runExit }
+
+python tools\mga\frontend_acceptance.py `
+  "$run\stderr.log" `
+  --misses "$run\dispatch-misses.txt" `
+  --frames-dir $run `
+  --present-limit 4200 `
+  --allowlist config\mga_frontend_fallbacks.toml `
+  --out "$run\summary.json"
+```
+
+The checker requires:
+
+- init `0xf500`, title `0x1c100`, and new-game intro `0x1c600`;
+- START, DOWN, UP, and CIRCLE in that order;
+- NEW GAME selected at present 3000;
+- LOAD GAME selected at present 3120;
+- NEW GAME reselected at present 3240;
+- title fade after CIRCLE at present 3360;
+- exactly the 266 reviewed module-qualified targets in
+  `config/mga_frontend_fallbacks.toml`;
+- zero unimplemented HLEs, host crashes, watchdogs, interpreter stops, and
+  permissive fallbacks;
+- XAudio2 at 44.1 kHz stereo, at least one second played, a nonempty device
+  queue, zero dropped frames, and zero device underruns.
+
+Run the command three times with fresh `frontend-acceptance-1`, `-2`, and `-3`
+directories. The accepted 2026-10-21 runs produced one SHA-256 per checkpoint
+across all three runs:
+
+| Present | SHA-256 |
+|---:|---|
+| `3000` | `d811daee9c251c848ddd43db2ea8bad0e8d5b5ef4b3f13ba7cee64141b5b98ac` |
+| `3120` | `46e83a04453079dff90e23554390a50486bd2db03ce5582761379d445de33627` |
+| `3240` | `90eb414f7b9e5dc4fcd92acc385b4cf12e1fc073d16ca41fcc12d72c6ec831fe` |
+| `3360` | `c4019d29431524e236da888bc7ac749410292d817a162b1f7dacd226ec6204ff` |
+
+The final route classifies those targets as 36 init, 77 title, and 153
+prologue. The reduced report is
+[reference/native_frontend_menu.json](reference/native_frontend_menu.json).
+Never commit the source logs, save fixture, or captures.
+
+The post-fix D3D12 real-time gate shuts down with a 6-8-block device queue,
+zero dropped frames, zero underruns, one preservation-silence transition,
+seven padding blocks, and 3,072 resynced frames. For a longer
+stack/transition regression, set both
+`SR_FAST_FORWARD_PRESENT` and `SR_EXIT_AFTER_PRESENT` to `50000`; the accepted
+run reached the limit in 108.8s without a host crash or interpreter stop.
+
+### First post-prologue st00 probe
+
+Use `config\mga_st00_probe.pad` with:
+
+```powershell
+$env:SR_PADSCRIPT = "$PWD\config\mga_st00_probe.pad"
+$env:SR_FAST_FORWARD_PRESENT = "30000"
+$env:SR_EXIT_AFTER_PRESENT = "30000"
+$env:SR_PADLOG = "1"
+$env:SR_MODULE_LOG = "1"
+```
+
+The accepted D3D12 run loads init `0xf500`, title `0x1c100`, prologue
+`0x1c600`, and st00 `0x19200`. It logs the native-handoff depth cap once and
+reaches present 30,000 in 152.8s without a crash, memory fault, unimplemented
+instruction, interpreter stop, or permissive fallback.
+
+The deterministic PPSSPP title oracle and a native 20,000-presentation
+new-game opening run both make zero MPEG calls. There is no front-end intro
+PMF on this route; card/campaign PMFs remain Phase 5/6 validation.
+
+### Native-module benchmark
+
+For an all-interpreted control on the same binary:
+
+```powershell
+$env:SR_DISABLE_NATIVE_MODULES = "*"
+$env:SR_INTERP_MAX_STEPS = "100000000"
+```
+
+For the native/hybrid route, remove both variables. Run the present-600 gate
+and record wall/CPU time, then run the menu route with:
+
+```powershell
+$env:SR_PERF_LOG = "1"
+$env:SR_PERF_START = "3300"
+$env:SR_PERF_WINDOW = "120"
+```
+
+Measured 2026-10-21 results:
+
+| Metric | All interpreted | Native/hybrid |
+|---|---:|---:|
+| Present-600 wall | `20,281 ms` | `11,222 ms` |
+| Present-600 host CPU | `19,156.25 ms` | `10,531.25 ms` |
+| Seven-window mean FPS | `34.54` | `39.22` |
+| Mean p95 frame | `156.19 ms` | `153.09 ms` |
+| Worst frame | `2,187.80 ms` | `271.16 ms` |
+
+After pixel-exact software-rasterizer optimization and D3D12 enablement:
+
+| Metric | Pre-optimization software | Optimized software | D3D12 1x |
+|---|---:|---:|---:|
+| Accepted-route wall | `108.6 s` | `83.0 s` | `14.1 s` |
+| Mean host presentation FPS | `39.22` | `46.35` | `162.55` |
+| Mean frame time | `25.73 ms` | `21.73 ms` | `6.37 ms` |
+| Mean p95 frame | `153.09 ms` | `127.54 ms` | `21.41 ms` |
+
+The optimized software captures retain the four exact hashes above. D3D12
+captures pass the functional frame metrics but are not pixel-identical. Compare
+them with:
+
+```powershell
+python external\psp-recomp\tools\ppmdiff.py `
+  build\mga\software-captures `
+  build\mga\d3d12-captures `
+  --threshold 8 `
+  --max-threshold-pixels 200000 `
+  --max-channel-delta 255 `
+  --json build\mga\d3d12-captures\diff.json
+```
+
+The measured title checkpoints have maximum channel delta 18-25 and about
+13.6% of pixels above delta 8. The fade checkpoint has maximum delta 9 and
+0.61% above delta 8.
+
+## 12. Framework tests
 
 ### Python tests
 
@@ -361,7 +590,7 @@ python -m unittest discover `
 Current result:
 
 ```text
-Ran 23 tests
+Ran 27 tests
 OK
 ```
 
@@ -411,6 +640,41 @@ exports, module-start parameters, HLE-only modules, unload, and allocation-base
 reuse. A separate malformed fixture verifies that imported variables fail with
 full cleanup instead of being ignored.
 
+### Immutable dispatch tables
+
+```powershell
+cmake --build --preset clang-cl --target mga_dispatch_table_tests
+ctest --test-dir out\build\clang-cl `
+  -R "^mga_dispatch_table$" --output-on-failure
+```
+
+The test covers sorted lookup, large tables, concurrent non-overlapping
+tables, collision rejection, idempotent activation, deactivation, and
+sequential reuse of `0x09b43c00` by two overlays.
+
+### Window FPS counter
+
+```powershell
+cmake --build --preset clang-cl --target mga_fps_counter_tests
+ctest --test-dir out\build\clang-cl `
+  -R "^mga_fps_counter$" --output-on-failure
+```
+
+The test verifies rolling FPS/frame-time output and timer-reset behavior.
+
+### Memory-stick state and input mappings
+
+```powershell
+cmake --build --preset clang-cl --target `
+  mga_memstick_state_tests mga_input_config_tests
+ctest --test-dir out\build\clang-cl `
+  -R "^mga_(memstick_state|input_config)$" --output-on-failure
+```
+
+These public tests cover inserted/removed state values and strict parsing, plus
+default/custom keyboard, mouse, and gamepad button mappings, analog response,
+and twin-stick behavior.
+
 ### Interpreter syscall and hybrid callback paths
 
 ```powershell
@@ -426,7 +690,8 @@ The synthetic instruction streams validate:
 - nested guest calls without replacing the original outer return PC;
 - guest-export recursion through `sr_syscall`;
 - an interpreted callback into static guest code and its patched HLE import;
-  and
+- nested re-entry from interpreted code into an active native dispatch entry;
+- VFPU scalar/quad memory forms and VFPU compute continuation; and
 - rejection of an unknown runtime syscall code.
 
 The module-loader fixture also verifies that a guest export resolves only for
@@ -447,7 +712,7 @@ make -C external\psp-recomp test-runtime
 Current combined CTest result:
 
 ```text
-2/2 tests passed
+6/6 tests passed
 ```
 
 ## Useful diagnostics
@@ -461,6 +726,14 @@ Current combined CTest result:
 | `SR_SEMALOG=1` | Semaphore operations |
 | `SR_EVENTLOG=1` | Event-flag operations |
 | `SR_GELOG=1` | GE list, signal, finish, and interrupt flow |
+| `SR_MEMSTICK_STATE=inserted|removed` | Select initial Memory Stick presence |
+| `SR_PADLOG=1` | Scripted pad edges with present/vblank clocks |
+| `SR_INPUT_LOG=1` | Live logical input edges and gamepad presence |
+| `SR_FBSNAP_PRESENT=N` | Rotating snapshots every N presentations |
+| `SR_FBCAPTURE_PRESENTS=a,b,...` | Exact presentation snapshots for acceptance |
+| `SR_FPS_COUNTER=1` | Rolling FPS and average frame time in the window title |
+| `SR_DISABLE_NATIVE_MODULES=*|name,...` | Keep selected generated modules interpreted for differential checks |
+| `SR_TRACE_RAM=path` | Write protected RAM when a bounded trace completes |
 | `SR_WATCHDOG_RAM=1` | Local RAM dump on the first no-frame watchdog |
 | `SR_INTERP_MAX_STEPS=N` | Override interpreter call budget |
 | `PSP_VFPU_TABLES=path` | Override VFPU table directory |

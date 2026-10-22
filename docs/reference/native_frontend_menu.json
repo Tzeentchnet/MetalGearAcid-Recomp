@@ -1,0 +1,317 @@
+{
+  "fallback_check": {
+    "allowlist": "mga_frontend_fallbacks.toml",
+    "mode": "exact",
+    "targets": 266
+  },
+  "frames": {
+    "3000": {
+      "bright_pixels": 33222,
+      "file": "capture_present_3000.ppm",
+      "height": 272,
+      "nonblack_pixels": 125154,
+      "selector_load": 5,
+      "selector_new": 58,
+      "unique_colors": 682,
+      "width": 480
+    },
+    "3120": {
+      "bright_pixels": 33281,
+      "file": "capture_present_3120.ppm",
+      "height": 272,
+      "nonblack_pixels": 124980,
+      "selector_load": 74,
+      "selector_new": 4,
+      "unique_colors": 683,
+      "width": 480
+    },
+    "3240": {
+      "bright_pixels": 32748,
+      "file": "capture_present_3240.ppm",
+      "height": 272,
+      "nonblack_pixels": 124858,
+      "selector_load": 0,
+      "selector_new": 54,
+      "unique_colors": 685,
+      "width": 480
+    },
+    "3360": {
+      "bright_pixels": 0,
+      "file": "capture_present_3360.ppm",
+      "height": 272,
+      "nonblack_pixels": 91196,
+      "selector_load": 0,
+      "selector_new": 0,
+      "unique_colors": 38,
+      "width": 480
+    }
+  },
+  "native": {
+    "audio": {
+      "backend": "XAudio2",
+      "buffer_count": 8,
+      "buffer_frames": 256,
+      "channels": 2,
+      "latency_ms": 46.44,
+      "sample_rate_hz": 44100,
+      "shutdown": {
+        "clock_drift_ms": -15310.38,
+        "device_buffers_max": 8,
+        "device_buffers_min": 0,
+        "dropped": 0,
+        "max_guest_queue": 2560,
+        "played_frames": 344832,
+        "played_ms": 7819.32,
+        "resynced": 660160,
+        "silent_blocks": 40,
+        "underruns": 150
+      }
+    },
+    "dispatch_misses": 266,
+    "failures": {
+      "host_crashes": 0,
+      "interpreter_stops": 0,
+      "permissive_fallbacks": 0,
+      "unimplemented_hle": 0,
+      "watchdogs": 0
+    },
+    "pad_events": [
+      {
+        "clock": "present",
+        "frame": 0,
+        "mask": "0x0000",
+        "present": 0,
+        "vblank": 1
+      },
+      {
+        "clock": "present",
+        "frame": 363,
+        "mask": "0x0008",
+        "present": 363,
+        "vblank": 738
+      },
+      {
+        "clock": "present",
+        "frame": 368,
+        "mask": "0x0000",
+        "present": 368,
+        "vblank": 740
+      },
+      {
+        "clock": "present",
+        "frame": 603,
+        "mask": "0x0008",
+        "present": 603,
+        "vblank": 834
+      },
+      {
+        "clock": "present",
+        "frame": 608,
+        "mask": "0x0000",
+        "present": 608,
+        "vblank": 836
+      },
+      {
+        "clock": "present",
+        "frame": 843,
+        "mask": "0x0008",
+        "present": 843,
+        "vblank": 930
+      },
+      {
+        "clock": "present",
+        "frame": 848,
+        "mask": "0x0000",
+        "present": 848,
+        "vblank": 932
+      },
+      {
+        "clock": "present",
+        "frame": 1083,
+        "mask": "0x0008",
+        "present": 1083,
+        "vblank": 1026
+      },
+      {
+        "clock": "present",
+        "frame": 1088,
+        "mask": "0x0000",
+        "present": 1088,
+        "vblank": 1028
+      },
+      {
+        "clock": "present",
+        "frame": 1323,
+        "mask": "0x0008",
+        "present": 1323,
+        "vblank": 1122
+      },
+      {
+        "clock": "present",
+        "frame": 1328,
+        "mask": "0x0000",
+        "present": 1328,
+        "vblank": 1124
+      },
+      {
+        "clock": "present",
+        "frame": 1563,
+        "mask": "0x0008",
+        "present": 1563,
+        "vblank": 1218
+      },
+      {
+        "clock": "present",
+        "frame": 1568,
+        "mask": "0x0000",
+        "present": 1568,
+        "vblank": 1220
+      },
+      {
+        "clock": "present",
+        "frame": 1803,
+        "mask": "0x0008",
+        "present": 1803,
+        "vblank": 1314
+      },
+      {
+        "clock": "present",
+        "frame": 1808,
+        "mask": "0x0000",
+        "present": 1808,
+        "vblank": 1316
+      },
+      {
+        "clock": "present",
+        "frame": 2043,
+        "mask": "0x0008",
+        "present": 2043,
+        "vblank": 1410
+      },
+      {
+        "clock": "present",
+        "frame": 2048,
+        "mask": "0x0000",
+        "present": 2048,
+        "vblank": 1412
+      },
+      {
+        "clock": "present",
+        "frame": 2283,
+        "mask": "0x0008",
+        "present": 2283,
+        "vblank": 1506
+      },
+      {
+        "clock": "present",
+        "frame": 2288,
+        "mask": "0x0000",
+        "present": 2288,
+        "vblank": 1508
+      },
+      {
+        "clock": "present",
+        "frame": 2523,
+        "mask": "0x0008",
+        "present": 2523,
+        "vblank": 1602
+      },
+      {
+        "clock": "present",
+        "frame": 2528,
+        "mask": "0x0000",
+        "present": 2528,
+        "vblank": 1604
+      },
+      {
+        "clock": "present",
+        "frame": 2763,
+        "mask": "0x0008",
+        "present": 2763,
+        "vblank": 1698
+      },
+      {
+        "clock": "present",
+        "frame": 2768,
+        "mask": "0x0000",
+        "present": 2768,
+        "vblank": 1700
+      },
+      {
+        "clock": "present",
+        "frame": 3003,
+        "mask": "0x0040",
+        "present": 3003,
+        "vblank": 1794
+      },
+      {
+        "clock": "present",
+        "frame": 3008,
+        "mask": "0x0000",
+        "present": 3008,
+        "vblank": 1796
+      },
+      {
+        "clock": "present",
+        "frame": 3123,
+        "mask": "0x0010",
+        "present": 3123,
+        "vblank": 1842
+      },
+      {
+        "clock": "present",
+        "frame": 3128,
+        "mask": "0x0000",
+        "present": 3128,
+        "vblank": 1844
+      },
+      {
+        "clock": "present",
+        "frame": 3243,
+        "mask": "0x2000",
+        "present": 3243,
+        "vblank": 1890
+      },
+      {
+        "clock": "present",
+        "frame": 3248,
+        "mask": "0x0000",
+        "present": 3248,
+        "vblank": 1892
+      }
+    ],
+    "padscript": "mga_menu_probe.pad",
+    "present_limit": 4200,
+    "reached_present": 4200,
+    "schema": "mga-native-reference-v1",
+    "source_log": "stderr.log",
+    "stage_checkpoints": [
+      {
+        "allocation": "0xf500",
+        "base": "0x09b43c00",
+        "entry": "0x09b43c34",
+        "gp": "0x09b5af20",
+        "name": "init",
+        "uid": "0x174"
+      },
+      {
+        "allocation": "0x1c100",
+        "base": "0x09b43c00",
+        "entry": "0x09b43c34",
+        "gp": "0x09b67b20",
+        "name": "title",
+        "uid": "0x17b"
+      },
+      {
+        "allocation": "0x1c600",
+        "base": "0x09b43c00",
+        "entry": "0x09b43c34",
+        "gp": "0x09b67860",
+        "name": "new_game_intro",
+        "uid": "0x183"
+      }
+    ]
+  },
+  "result": "pass",
+  "schema": "mga-frontend-acceptance-v1"
+}

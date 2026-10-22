@@ -3,6 +3,7 @@
 
 import argparse
 import glob
+import hashlib
 from pathlib import Path
 import subprocess
 import sys
@@ -72,6 +73,10 @@ def main(argv):
         args.out / "mga_recomp.c",
         f"--base={module['base']:#x}",
     ]
+    codegen_command.extend(
+        f"--function-entry={address:#x}"
+        for address in module.get("function_entries", [])
+    )
     if not args.single:
         codegen_command.append("--split")
     with codegen_log.open("w", encoding="utf-8") as log:
@@ -114,6 +119,84 @@ def main(argv):
         result = run(command)
         if result.returncode:
             return result.returncode
+
+    modules_root = args.out.parent / "modules"
+    for native in config.get("native_module", []):
+        module_id = native["id"]
+        prefix = native["prefix"]
+        native_prx = ROOT / "build" / "mga" / "disc" / native["file"]
+        if not native_prx.exists():
+            print(
+                f"missing {native_prx}; run extraction first",
+                file=sys.stderr,
+            )
+            return 1
+        native_sha1 = hashlib.sha1(native_prx.read_bytes()).hexdigest()
+        if native_sha1 != native["sha1"]:
+            print(
+                f"{native_prx}: SHA-1 {native_sha1} != "
+                f"{native['sha1']}",
+                file=sys.stderr,
+            )
+            return 1
+        native_out = modules_root / module_id
+        native_out.mkdir(parents=True, exist_ok=True)
+        for pattern in (
+            f"{prefix}_[0-9][0-9][0-9].c",
+            f"{prefix}_hot_[0-9][0-9][0-9].c",
+            f"{prefix}_cold_[0-9][0-9][0-9].c",
+        ):
+            for path in glob.glob(str(native_out / pattern)):
+                Path(path).unlink()
+        native_stubs = native_out / "stubs.txt"
+        native_stubs.unlink(missing_ok=True)
+        native_log = native_out / "codegen.log"
+        native_command = [
+            sys.executable,
+            toolkit / "codegen.py",
+            native_prx,
+            native_out / f"{prefix}.c",
+            f"--base={native['base']:#x}",
+            f"--symbol-prefix={prefix}",
+        ]
+        if not args.single:
+            native_command.append("--split")
+        if native.get("runtime_jal", False):
+            native_command.append("--runtime-jal")
+        if native.get("verify_runtime_code", False):
+            native_command.append("--verify-runtime-code")
+        with native_log.open("w", encoding="utf-8") as log:
+            result = run(native_command, stderr=log)
+        if result.returncode:
+            print(native_log.read_text(encoding="utf-8"), file=sys.stderr)
+            return result.returncode
+        if native_stubs.exists():
+            print(
+                f"ERROR: {module_id} emitted trapping stubs; "
+                f"see {native_stubs}",
+                file=sys.stderr,
+            )
+            return 1
+        for command in (
+            [
+                sys.executable,
+                toolkit / "imports.py",
+                native_prx,
+                f"{native['base']:#x}",
+                f"--toml={native_out / f'{prefix}_imports.toml'}",
+            ],
+            [
+                sys.executable,
+                toolkit / "analyze.py",
+                native_prx,
+                f"--base={native['base']:#x}",
+                f"--toml={native_out / f'{prefix}_functions.toml'}",
+                "--quiet",
+            ],
+        ):
+            result = run(command)
+            if result.returncode:
+                return result.returncode
     return 0
 
 

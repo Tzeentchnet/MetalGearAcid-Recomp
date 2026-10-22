@@ -12,16 +12,24 @@ commands and measurable checks in [REPRODUCTION.md](REPRODUCTION.md).
 As of 2026-10-21:
 
 - the supported ULUS-10006 v1.00 disc is pinned and extracted reproducibly;
-- the `mgp_main` PRX generates 9,913 functions with zero trapping stubs;
+- the `mgp_main` PRX generates 9,914 functions with zero trapping stubs;
 - a release clang-cl Windows executable builds successfully;
 - plaintext runtime modules load, relocate, link, start, and unload;
 - private KJFS, ZLIB, sound, and stage exports execute through interpreter
   fallback;
 - hybrid callbacks from interpreted modules into static main code work;
 - software GE, XAudio2, VFPU tables, PGF fonts, and input initialize;
-- local frame checks reach the memory-stick screen and KONAMI logo; and
-- gameplay, full front-end boot, movies, saves, D3D12, performance, and
-  full-game stability are not yet validated.
+- deterministic runs navigate the title menu and enter the new-game opening;
+- empty, removed, and existing-save memory-stick states are validated; and
+- KJFS, ZLIB, sound, init, title, and prologue have generated native tables;
+- post-load-patched overlay functions use a reviewed, module-qualified hybrid
+  allowlist rather than whole-module interpretation; and
+- an opt-in window-title counter reports rolling FPS/frame time on every
+  renderer;
+- optimized software rendering remains pixel-exact at the four title gates,
+  and D3D12 passes the same functional front-end acceptance route; and
+- gameplay, card PMFs, save creation, broader D3D12 scaling/golden coverage,
+  campaign performance, and full-game stability are not yet validated.
 
 ## Definition of done
 
@@ -86,9 +94,9 @@ clearly rather than appear to work.
 |---|---|---|
 | M0 - Reproducible boot baseline | Done | Verified build reaches visible game content with zero main-module stubs. |
 | M1 - Framework hardening | Active | Module/codegen/scheduler changes have synthetic tests and are organized for upstream integration. |
-| M2 - Deterministic front end | Pending | Scripted native and PPSSPP runs reach an idle title/menu state with no unknown HLE or crash. |
-| M3 - Native runtime modules | Pending | Boot-critical service modules and active overlays use generated native dispatch; fallback use is measured and bounded. |
-| M4 - Playable vertical slice | Pending | New game through tutorial or first mission is playable, savable, reloadable, and repeatable. |
+| M2 - Deterministic front end | Done | Three scripted native runs reproduce the same title/menu/new-game checkpoints with no unknown HLE, crash, watchdog, or permissive fallback. |
+| M3 - Native runtime modules | Done | Boot-critical services and all deterministic front-end overlays activate generated tables; patched-function fallback is module-qualified and exact-allowlisted. |
+| M4 - Playable vertical slice | Active | New game through tutorial or first mission is playable, savable, reloadable, and repeatable. |
 | M5 - Full single-player validation | Pending | All campaign stages, movies, saves, transitions, ending, and credits pass. |
 | M6 - Renderer/performance parity | Pending | Hardware rendering, scaling, frame pacing, audio timing, and soak gates pass. |
 | M7 - Source release | Pending | CI, content audit, clean clone, documentation, licensing, and release checklist pass. |
@@ -147,6 +155,23 @@ Exit gate:
 
 Goal: boot through logos and intro into an idle, controllable title/menu state.
 
+Status: complete.
+
+Delivered:
+
+- inserted, removed, empty-save, and existing-save memory-stick coverage;
+- a corrected START/DOWN/UP/CIRCLE title-menu route;
+- nested interpreted-to-native dispatch and interpreted VFPU coverage needed
+  by the title and new-game overlays;
+- exact presentation captures and title selector acceptance metrics;
+- a real-time XAudio2 functional gate; and
+- three consecutive deterministic runs with identical checkpoint images.
+
+The expected "intro PMF" is not present on this route. Both the PPSSPP title
+oracle and a native 20,000-presentation new-game opening run make zero MPEG
+calls. Card/campaign PMFs remain in Phase 5 and audio/video synchronization
+remains in Phase 6.
+
 Work:
 
 1. Create a deterministic PPSSPP pad script and matching native input script.
@@ -174,6 +199,27 @@ Exit gate:
 ## Phase 3 - Native runtime modules and overlays
 
 Goal: remove interpreter cost from normal boot and gameplay.
+
+Status: complete for the deterministic front-end route.
+
+Delivered:
+
+- unique generated symbols and immutable dispatch descriptors per PRX;
+- collision-checked activation/deactivation tied to exact module identity and
+  expected load base;
+- native KJFS (527 entries), ZLIB (121), and sound (904);
+- native init (636), title (997), and prologue (1,091) overlays;
+- live-code verification for title-owned post-load relocations, with only
+  mutated functions falling back;
+- a reviewed exact allowlist of 266 module-qualified overlay targets;
+- same-base init/title/prologue activation coverage; and
+- restored one-million-instruction fallback cap plus before/after wall, CPU,
+  and real-time pacing benchmarks.
+
+Matched present-600 runs reduced wall time from 20.281s to 11.222s and host
+CPU time from 19.156s to 10.531s. Seven real-time menu windows improved from
+34.54 to 39.22 FPS average, while the worst transition interval fell from
+2.188s to 0.271s.
 
 Work:
 
@@ -254,6 +300,12 @@ Exit gate:
 ## Phase 6 - Renderer, audio, performance, and soak
 
 Goal: turn functional correctness into a stable native PC experience.
+
+Progress: the opt-in FPS counter works on every presenter, the software
+front-end remains pixel-exact while improving from 39.22 to 46.35 FPS, and the
+dedicated D3D12 preset passes the deterministic title/menu/prologue route at
+1x with 162.55 FPS host presentation throughput. D3D12 color-delta tolerance,
+scaling, gameplay, movies, audio synchronization, and soak coverage remain.
 
 Work:
 

@@ -22,12 +22,21 @@ Status values:
 | P0 | Patch imports in the loaded static image | MGA-F-012 | Fork commits `51aa462`, `1225147` | Interpreted callbacks into static modules reach HLE instead of raw no-op stubs. |
 | P0 | Runtime PRX loader and module registry | MGA-F-006 through MGA-F-009 | Fork commit `51aa462` + synthetic tests | Load-by-path and load-by-fd, relocation, imports, exports, start, unload, and explicit failures. |
 | P0 | Interpreter syscall continuation | MGA-F-013 | Fork commit `51aa462` + synthetic tests | Runtime PRX syscalls execute HLE and resume with the original outer return target. |
+| P0 | Nested interpreter-to-native re-entry | MGA-F-034 | Fork commit `2bf37a0` + synthetic tests | An interpreted call chain hands targets in the active generated table back to native code, then resumes at the guest `$ra`. |
+| P0 | Interpreted VFPU continuation | MGA-F-034 | Fork commit `2bf37a0` + synthetic tests | Fallback reuses tested VFPU compute semantics and implements COP2 plus scalar/quad memory forms. |
 | P0 | Per-thread GP | MGA-F-014 | Fork commit `51aa462` | Module-created threads run with their module GP. |
 | P0 | VFPU7 packed conversions | MGA-F-010 | Fork commits `1225147`, `7980eb7` | `vi2uc`, `vi2c`, `vi2us`, and `vi2s` codegen semantics with executable vectors. |
 | P0 | Executable-relative resources | MGA-F-020 | Fork commit `51aa462` | VFPU tables and fonts work from any process working directory. |
 | P1 | Explicit module replacement policy | MGA-F-015 | Fork commit `abad642` + synthetic tests | Per-title policy selects guest, HLE, or reject by path/name/hash; decryption remains future work. |
-| P1 | Static recompilation of runtime modules | MGA-F-021 | Proposed | Multiple generated module tables can be activated/deactivated at runtime. |
+| P1 | Static recompilation of runtime modules | MGA-F-021, MGA-F-038 | Fork commit `2bf37a0` + synthetic/protected tests | Prefixed generated modules expose immutable tables activated/deactivated by exact module identity. |
+| P1 | Explicit computed function entries | MGA-F-034 | Fork commit `2bf37a0` + protected MGA validation | Codegen accepts validated title-supplied entries that static analysis cannot discover. |
+| P1 | Live-code-verified overlay fallback | MGA-F-039, MGA-F-040 | Fork commit `2bf37a0` + protected tests | Functions changed by title-owned post-load linking fall back explicitly and retain module-qualified identity. |
+| P0 | Interpreter-only failed native entries | MGA-F-046 | Fork commit `2bf37a0` + synthetic/protected tests | Once live-code verification fails, interpreter re-entry must not bounce through the same generated wrapper; same-address replacement overlays remain independent. |
+| P1 | Continuous XAudio2 blocking-output queue | MGA-F-047 | Fork commit `2bf37a0` + protected route check | Blocking output retains real lead; device-only silence does not advance guest time, and load-gap resume prebuffers/fades instead of alternating bursts. |
+| P0 | PSP scratchpad mapping | MGA-F-048 | Fork commit `2bf37a0` + synthetic/protected tests | Native and interpreted accesses share the 16 KiB `0x00010000` scratchpad and its physical aliases. |
+| P0 | Bounded scheduler-aware interpreter handoff | MGA-F-049 | Fork commit `2bf37a0` + synthetic/protected tests | Long-lived hybrid loops cannot grow the host fiber stack without bound; deeper execution keeps scheduler progress and explicit semantic failures. |
 | P1 | Variable import binding | MGA-F-016 | Fork commit `abad642` explicit rejection | Bind supported variable imports in the future; current load-time rejection prevents silent misuse. |
+| P1 | Removable Memory Stick state | MGA-F-032 | Fork commit `2bf37a0` + synthetic tests | Initial inserted/removed device, FAT, callback, capacity, and write-protect behavior matches PPSSPP. |
 | P1 | UID-fidelity model | MGA-F-004, MGA-F-025 | Fork commit `abad642`; audited through first stage | Separate current entry UID from next UID and account for PSP file-node objects. |
 | P1 | Library-qualified import identity | MGA-F-031 | Fork commits `abad642`, `7980eb7` | Preserve `(library, NID)` through generated imports, runtime bindings, guest exports, and diagnostics. |
 | P1 | Callback-aware vblank HLE | MGA-F-018 | Fork commit `51aa462` | Register `sceDisplayWaitVblankStartCB` with callback-enabled waiting. |
@@ -39,6 +48,11 @@ Status values:
 | P2 | Gate all title patches | MGA-F-019 | Fork commit `51aa462` | Killzone-specific data mutations require an explicit build flag. |
 | P2 | Shared dual-clock pad scripts | MGA-F-027 | Fork commit `abad642` + parent profiles | Header-only scripts are neutral and v3 profiles drive PPSSPP vblanks plus native presents. |
 | P2 | Capture-free presentation limit | MGA-F-030 | Fork commit `abad642` | `SR_EXIT_AFTER_PRESENT` logs the terminal present and exits cleanly without a game-derived capture. |
+| P2 | Presentation/input acceptance diagnostics | MGA-F-035, MGA-F-037 | Fork commit `2bf37a0` | Exact presentation captures plus scripted/live input-edge logs remain opt-in and title-neutral. |
+| P2 | Window-title FPS counter | MGA-F-042 | Fork commit `2bf37a0` + synthetic test | GDI, Vulkan, and D3D12 expose one opt-in rolling FPS/frame-time diagnostic. |
+| P1 | Exact software sampler/raster fast paths | MGA-F-043 | Fork commit `2bf37a0` + protected goldens | Degenerate bilinear weights, through-mode attributes, and decoded-texel reuse avoid work without changing output. |
+| P1 | D3D12 front-end performance path | MGA-F-044 | Fork commit `2bf37a0` + protected capture/route checks | A dedicated build preset and GPU readback capture support the accepted native-resolution route. |
+| P2 | Title-aware configuration UI | MGA-F-045 | Fork commit `2bf37a0` + process-level checks | First-run, explicit configuration, and native message dialogs consistently use `SR_GAME_TITLE`. |
 | Config | MGA disc and boot contract | MGA-F-001 through MGA-F-005 | Game config | Keep hashes, argument, stack, UID seed, GE ID, and title outside generic defaults. |
 
 ## Recommended upstream decomposition
@@ -93,6 +107,12 @@ The runtime dispatch layer should allow:
 - interpreter fallback for uncompiled or unexpected modules.
 
 Generated modules must not all export the same `sr_register_all` symbol.
+
+The local implementation now provides prefixed symbols and descriptors,
+collision-checked activation/deactivation, exact path/hash/name/base matching,
+and three same-base Metal Gear Acid overlays. The remaining upstream work is
+API review, broader title regression, and deciding whether live-code
+verification belongs in the generic generator or a title integration layer.
 
 ### 3. Import identity
 
@@ -158,6 +178,13 @@ payloads.
    - odd vector sizes for halfword packing;
    - source swizzle/negate/constants; and
    - destination saturation/write masks.
+5. An explicit aligned function entry inside executable ranges is emitted and
+   registered; unaligned or out-of-range entries fail.
+6. A symbol prefix namespaces generated functions, the descriptor, and
+   registration without changing default single-module output.
+7. Runtime-code verification emits an explicit module-qualified interpreter
+   fallback rather than executing stale generated operands, and marks the
+   failed function pointer interpreter-only before tail entry.
 
 ### PRX loader tests
 
@@ -175,13 +202,18 @@ payloads.
 5. Named exports resolve only while their module is active.
 6. Unload returns success and the allocator reuses the same base.
 7. Two overlays export the same address/NID but only the active overlay wins.
+8. Two native tables sharing an address cannot be active together; after
+   deactivation, the replacement table resolves at that address.
+9. Disabling one live-code-mismatched function pointer suppresses only that
+   entry; a replacement overlay function at the same address remains native.
 
 Current local coverage is in
 `external/psp-recomp/tools/tests/module_loader_test.c`. Its synthetic PRX has
 two PT_LOAD segments, explicit BSS, module start parameters, a named import and
 export, and a type-A relocation section. It currently covers items 1-6 and
 same-base reload. The two-simultaneously-described-overlay dispatch case in
-item 7 remains part of T-3.9 because it depends on multi-table native dispatch.
+item 7 remains future export-registry work. Dispatch-table items 8-9 are covered
+by `dispatch_table_test.c`, including sequential reuse of `0x09b43c00`.
 
 ### Interpreter/HLE tests
 
@@ -190,14 +222,22 @@ item 7 remains part of T-3.9 because it depends on multi-table native dispatch.
 3. A guest export called through a static import returns without HLE register
    poisoning.
 4. An interpreted callback into static code reaches a patched static import.
-5. Unknown runtime syscall codes fail with PC, code, and module context.
+5. A nested interpreted call into an active native dispatch entry executes
+   natively and resumes the original interpreted frame.
+6. VFPU scalar/quad loads and stores plus a compute instruction continue
+   through fallback.
+7. Scratchpad accesses at `0x00010000-0x00013fff` work through fallback.
+8. `vnop`, `vf2i`, `vi2f`, VFPU7 packed conversions, and VFPU condition
+   branches match generated semantics.
+9. Unknown runtime syscall codes fail with PC, code, and module context.
 
 Current local coverage is in
 `external/psp-recomp/tools/tests/interp_fallback_test.cpp`. It executes
 synthetic guest instruction streams that cover delay-slot HLE calls, nested
 guest calls, outer return-PC preservation, guest-export recursion, and a guest
-callback into static code that reaches a patched import. It also verifies that
-an unmapped runtime syscall code is rejected before HLE dispatch. A separate
+callback into static code that reaches a patched import. It now also covers
+nested native-table re-entry and VFPU compute/load/store continuation. An
+unmapped runtime syscall code is rejected before HLE dispatch. A separate
 process-level assertion for the final abort diagnostic remains useful but is
 not required for the continuation semantics.
 
@@ -224,7 +264,9 @@ Do not upstream these as generic defaults:
 - ULUS-10006 hashes and file paths;
 - `0x08804000` / `0x0880432c`;
 - the EBOOT path argument;
-- Metal Gear Acid's 100-million-step bring-up cap;
+- Metal Gear Acid's computed callback entry `0x08919f10`;
+- Metal Gear Acid's raw-LBN overlay paths, hashes, load bases, and 266-target
+  front-end allowlist;
 - module base expectations;
 - frame-count smoke-test content; or
 - a blanket rule that every `sce*` module is HLE-replaced.

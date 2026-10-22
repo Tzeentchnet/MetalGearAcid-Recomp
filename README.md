@@ -23,7 +23,7 @@ git clone --recurse-submodules `
 ```
 
 The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
-`7980eb7`.
+`2bf37a0`.
 
 ## Documentation
 
@@ -39,17 +39,39 @@ The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
 - The supported ISO is pinned by size and SHA-1.
 - The plaintext `mgp_main` PRX is extracted reproducibly.
 - The main module relocates at `0x08804000`, enters at `0x0880432c`, and
-  contains 9,913 discovered functions.
+  contains 9,914 generated entry points with no trapping stubs.
 - PPSSPP oracle capture confirms the initial argument, 256 KiB start-thread
   stack, next UID, and initial GE list ID.
 - Plaintext runtime PRXs are loaded, relocated, linked to HLE, and executed
   through interpreter fallback. This covers `kjfs`, `zlibdec`, `sound`, and
   stage overlays; Sony media modules use the fork's native HLE replacements.
-- Native software rendering, XAudio2, VFPU tables, fonts, and hybrid callbacks
-  are active. Automated captures reach the KONAMI logo.
-- Gameplay is not yet validated. Runtime modules are still interpreted, so
-  compiling hot modules/overlays and completing full boot/gameplay validation
-  are the next milestones.
+- Native software rendering, XAudio2, VFPU tables, fonts, mixed
+  interpreted/native callbacks, keyboard input, and gamepad mappings are
+  active.
+- Three deterministic runs navigate NEW GAME/LOAD GAME, return to NEW GAME,
+  and enter the opening story overlay with identical software-renderer
+  checkpoints and no crash, watchdog, unknown HLE, or permissive fallback.
+- Empty, removed, and existing-save memory-stick states are validated. Card
+  PMFs, save creation, and the full campaign are not yet validated. Verified
+  completion and post-Forest ULUS-10006 fixtures provide direct gameplay
+  routes without replaying the scripted opening.
+- KJFS, ZLIB, sound, init, title, and prologue now activate generated native
+  dispatch tables. The first mission overlay, st00, adds another 1,000 native
+  entries. Functions changed by the game's post-load overlay linker fall back
+  with module-qualified identity; unchanged functions remain native.
+- Native conversion reduced the matched present-600 wall/CPU benchmark by
+  about 45%. Pixel-exact software-rasterizer optimizations raise the measured
+  menu/prologue route from 39.2 to 46.4 FPS, while the accepted D3D12 route
+  reaches about 162.6 FPS host presentation throughput on the validation PC.
+  Failed live-code wrappers are now kept in the interpreter, eliminating the
+  post-prologue host stack overflow; the 50,000-presentation regression route
+  exits cleanly. Fixed-rate XAudio2 output retains real guest audio across
+  load gaps; the accepted route reports zero underruns/drops and one
+  preservation-silence transition. PSP scratchpad support and a bounded,
+  scheduler-aware interpreter now carry the deterministic route into st00
+  through present 30,000. The next milestone is identifying the dark
+  briefing's intended advance control and completing a playable, savable
+  first-mission route.
 
 ## Requirements
 
@@ -91,22 +113,40 @@ cmake --build --preset clang-cl --target mga_driver
 
 The build copies required VFPU tables and fonts beside the executable.
 
+For the recommended high-performance renderer, install an SDL3 development
+package and build the dedicated preset:
+
+```powershell
+cmake --preset clang-cl-d3d12 `
+  -DSDL3_DIR="C:\path\to\SDL3\cmake"
+cmake --build --preset clang-cl-d3d12 --target mga_driver
+```
+
+Run `out\build\clang-cl-d3d12\mga.exe` with `SR_GPU=d3d12`. Keep the
+`clang-cl` software build for pixel-exact reference captures.
+
 Run it against the same verified disc:
 
 ```powershell
 $env:PSP_ISO = "C:\path\to\Metal Gear Acid (USA).iso"
+$env:SR_FPS_COUNTER = "1"
 out\build\clang-cl\mga.exe --boot `
   build\mga\gen\mga_image.bin 08804000 0880432c none --gui
 ```
 
 The first GUI run creates portable `graphics.ini` and `input.ini` beside the
-executable and opens controller setup. Current interpreted modules use a
-100-million-instruction per-call safety cap; override it for diagnostics with
+executable and opens controller setup. The runtime uses its conservative
+one-million-instruction fallback cap; override it only for diagnostics with
 `SR_INTERP_MAX_STEPS`.
+
+`SR_FPS_COUNTER=1` updates the window title every 500 ms with rolling FPS and
+average frame time on GDI, Vulkan, and D3D12.
 
 For deterministic tests, use the shared profiles in `config/` and create
 isolated PPSSPP/native memstick roots with `tools\mga\memstick.py`; see
-[REPRODUCTION.md](docs/REPRODUCTION.md).
+[REPRODUCTION.md](docs/REPRODUCTION.md). The front-end acceptance command
+validates exact menu frames, input edges, the overlay route, fallback set, and
+real-time XAudio2 output.
 
 ## License
 
