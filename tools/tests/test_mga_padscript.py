@@ -27,6 +27,9 @@ class PadScriptTests(unittest.TestCase):
         menu = padscript.read_padscript(
             ROOT / "config" / "mga_menu_probe.pad"
         )
+        new_game = padscript.read_padscript(
+            ROOT / "config" / "mga_new_game_setup.pad"
+        )
 
         self.assertEqual(neutral, [])
         self.assertEqual(len(boot), 10)
@@ -39,6 +42,11 @@ class PadScriptTests(unittest.TestCase):
             [event.mask for event in menu[-4:]],
             [0x0008, 0x0040, 0x0010, 0x2000],
         )
+        self.assertEqual(len(new_game), 73)
+        self.assertTrue(
+            all(event.mask == 0x2000 for event in new_game[11:])
+        )
+        self.assertEqual(new_game[-1].runtime_present, 18000)
 
     def test_rejects_missing_header(self):
         path = self.write_script(["10 20 0008 2 3"])

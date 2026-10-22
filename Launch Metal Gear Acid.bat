@@ -3,8 +3,13 @@ setlocal
 
 set "MGA_ROOT=%~dp0"
 set "MGA_IMAGE=%MGA_ROOT%build\mga\gen\mga_image.bin"
+if not defined MGA_ISO_CONFIG set "MGA_ISO_CONFIG=%MGA_ROOT%config\mga_iso_path.txt"
 
 if defined PSP_ISO goto iso_ready
+if exist "%MGA_ISO_CONFIG%" (
+    set /p "PSP_ISO="<"%MGA_ISO_CONFIG%"
+    if defined PSP_ISO goto iso_ready
+)
 set "PSP_ISO=%MGA_ROOT%Metal Gear Acid (USA)\Metal Gear Acid (USA).iso"
 
 :iso_ready
@@ -75,6 +80,7 @@ if not exist "%PSP_ISO%" goto missing_iso
 if /I "%MGA_LAUNCH_DRY_RUN%"=="1" (
     echo Renderer: %MGA_RENDERER_NAME%
     echo Executable: %MGA_EXE%
+    echo ISO: %PSP_ISO%
     echo SR_GPU=%SR_GPU%
     echo SR_VIDEO=%SR_VIDEO%
     exit /b 0
@@ -120,7 +126,8 @@ exit /b 1
 :missing_iso
 echo The Metal Gear Acid ISO was not found:
 echo %PSP_ISO%
-echo Set PSP_ISO to the full path of a supported USA disc image.
+echo Run "Install Metal Gear Acid.bat" or set PSP_ISO to the full path
+echo of a supported USA disc image.
 pause
 exit /b 1
 

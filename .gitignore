@@ -10,6 +10,7 @@
 
 # Local user-supplied disc folder.
 /Metal Gear Acid (USA)/
+/config/mga_iso_path.txt
 
 # Generated recompilation and native build output.
 /build/
@@ -26,6 +27,9 @@
 *.log
 /.vs/
 /.vscode/
+
+# Local internal development documentation.
+/devdocs/
 
 # Nested build output.
 /external/psp-recomp/build/

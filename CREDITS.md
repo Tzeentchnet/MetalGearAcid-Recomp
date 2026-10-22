@@ -15,4 +15,5 @@ This project builds on:
   renderer.
 
 The bundled runtime has additional third-party components and license notices.
-See `external/psp-recomp/CREDITS.md` after initializing the submodule.
+See the [runtime credits](external/psp-recomp/CREDITS.md) after initializing
+the submodule.

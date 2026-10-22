@@ -1,5 +1,10 @@
 # Metal Gear Acid (USA), ULUS-10006 v1.00.
 
+[runtime]
+repository = "https://github.com/Tzeentchnet/psp-recomp.git"
+branch = "kzl"
+commit = "66c18a57bef4a470751a5d56ab53acd9420f3fb0"
+
 [disc]
 id = "ULUS10006"
 version = "1.00"

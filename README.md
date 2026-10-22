@@ -7,13 +7,17 @@ developed for the Killzone: Liberation recompilation.
 No game executable, generated game C, disc data, or other copyrighted game
 assets belong in this repository. You must supply your own supported USA disc.
 
+## Development status
+
+This project is under active development. The deterministic front end and
+selected gameplay routes work, but the full campaign, save creation and
+reload, movies, renderer parity, and long-run stability are not yet validated.
+Treat current builds as experimental. See the [project status](docs/STATUS.md)
+and [completion plan](docs/PLAN.md) for the current scope and release gates.
+
 ## Repository
 
-Private development repository:
-
-```text
-https://github.com/Tzeentchnet/MetalGearAcid-Recomp
-```
+[Tzeentchnet/MetalGearAcid-Recomp](https://github.com/Tzeentchnet/MetalGearAcid-Recomp)
 
 Clone with the tested public runtime fork:
 
@@ -23,14 +27,13 @@ git clone --recurse-submodules `
 ```
 
 The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
-`41c8cb4`.
+`66c18a5`.
 
 ## Documentation
 
 - [Documentation index](docs/README.md)
-- [Project status and repository history](docs/STATUS.md)
+- [Project status](docs/STATUS.md)
 - [Project completion plan](docs/PLAN.md)
-- [Live project TODO](docs/TODO.md)
 - [Evidence-backed findings](docs/FINDINGS.md)
 - [Upstream framework improvements](docs/UPSTREAM.md)
 - [Reproduction and acceptance checks](docs/REPRODUCTION.md)
@@ -46,7 +49,38 @@ The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
 - SDL3 when enabling the optional D3D12 or Vulkan renderer
 - Vulkan SDK when enabling the optional Vulkan renderer
 
-## Set up
+## Quick setup
+
+The guided installer verifies the ISO, downloads or initializes the pinned
+runtime fork, extracts the required files, generates native sources, detects
+the Visual Studio build environment, builds the selected renderer, and
+remembers the ISO location for the launcher.
+
+For the dependency-light software/GDI build, double-click
+`Install Metal Gear Acid.bat` and enter the ISO path when prompted. The same
+setup can be run from a terminal:
+
+```powershell
+python install.py "C:\path\to\Metal Gear Acid (USA).iso"
+```
+
+The default software build does not require SDL3. For the recommended D3D12
+renderer, install an SDL3 development package and run:
+
+```powershell
+python install.py "C:\path\to\Metal Gear Acid (USA).iso" `
+  --renderer d3d12 `
+  --sdl3-dir "C:\path\to\SDL3\cmake"
+```
+
+Use `--renderer vulkan` with the same SDL3 option after installing the Vulkan
+SDK. The installer reports missing Git, CMake, Ninja, Visual Studio, Clang, or
+Windows SDK components with an actionable error. It also works from a source
+archive by cloning the exact runtime commit recorded in `config\mga.toml`.
+
+When setup completes, double-click `Launch Metal Gear Acid.bat`.
+
+### Manual setup
 
 Initialize the runtime fork:
 
@@ -125,9 +159,9 @@ renderer build exists, it is selected automatically. Set
 `MGA_RENDERER=software` before launching to skip the prompt.
 
 The launcher opens the Metal Gear Acid graphics and controller settings, then
-starts the selected executable with the matching renderer override. It uses
-`Metal Gear Acid (USA)\Metal Gear Acid (USA).iso` by default; set `PSP_ISO`
-first to use a supported disc image at another location.
+starts the selected executable with the matching renderer override. It first
+uses `PSP_ISO` when set, then the ISO path saved by the installer, and finally
+`Metal Gear Acid (USA)\Metal Gear Acid (USA).iso`.
 
 The first GUI run creates portable `graphics.ini` and `input.ini` beside the
 executable and opens controller setup. Metal Gear Acid exposes standard PSP

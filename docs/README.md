@@ -6,23 +6,21 @@ framework.
 
 ## Repositories
 
-- Private parent:
-  `https://github.com/Tzeentchnet/MetalGearAcid-Recomp`
-- Public maintained runtime fork:
-  `https://github.com/Tzeentchnet/psp-recomp`
-- Pinned runtime commit: `41c8cb4`
+- Parent project:
+  [Tzeentchnet/MetalGearAcid-Recomp](https://github.com/Tzeentchnet/MetalGearAcid-Recomp)
+- Maintained runtime fork:
+  [Tzeentchnet/psp-recomp](https://github.com/Tzeentchnet/psp-recomp)
+- Pinned runtime commit: `66c18a5`
 
-The parent being private does not change the evidence policy below. Game data,
-generated code, saves, logs, traces, dumps, and captures remain untracked.
+The public repository is source-only. Game data, generated code, saves, logs,
+traces, dumps, and captures remain untracked.
 
 ## Documents
 
-- [STATUS.md](STATUS.md) - current validated capabilities, remaining
-  milestones, rewritten-history guidance, and attribution policy.
+- [STATUS.md](STATUS.md) - current validated capabilities, limitations, and
+  next gameplay milestone.
 - [PLAN.md](PLAN.md) - milestone roadmap, definition of done, validation
   ladder, upstream workflow, risks, and documentation maintenance contract.
-- [TODO.md](TODO.md) - live prioritized task list, current focus, completion
-  evidence, and continuous documentation obligations.
 - [FINDINGS.md](FINDINGS.md) - numbered, evidence-backed findings about the
   disc, executable, module layout, boot contract, runtime behavior, and
   framework gaps.
@@ -71,6 +69,8 @@ An upstreamable framework change should:
 3. have synthetic, non-game regression coverage where practical; and
 4. preserve existing single-module static recompilation behavior.
 
-Task state is maintained in [TODO.md](TODO.md). The mandatory mapping from a
-code or behavior change to the documents that must change with it is defined in
+Active task state is maintained in internal development documentation and is
+intentionally excluded from the public repository. The mandatory mapping from
+a code or behavior change to the public documents that must change with it is
+defined in
 [PLAN.md](PLAN.md#documentation-maintenance-contract).

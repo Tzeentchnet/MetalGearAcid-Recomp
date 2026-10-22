@@ -1,8 +1,8 @@
 # Upstream framework improvements
 
 This document converts [FINDINGS.md](FINDINGS.md) into work for the upstream
-`psp-recomp` fork. Implementation status and dependencies are tracked in
-[TODO.md](TODO.md), primarily Phase 1 and Phase 3.
+`psp-recomp` fork. Implementation status and dependencies are tracked
+internally.
 
 Status values:
 
@@ -47,6 +47,7 @@ Status values:
 | P2 | Multi-buffer capture | MGA-F-023 | Proposed | Capture displayed buffer and best render/content buffer with metadata. |
 | P2 | GE `0xf0-0xf9` classification | MGA-F-022 | Fork commit `245031c` | Store immediate-vertex state and explicitly report nonzero unsupported VAP draws. |
 | P2 | Gate all title patches | MGA-F-019 | Fork commit `e2dbc91` | Killzone-specific data mutations require an explicit build flag. |
+| P2 | Gate Killzone-specific twin-stick controls | MGA-F-019 | Fork commit `66c18a5` | `SR_ENABLE_KZL_TWIN_STICK=0` removes the native side channel, related configuration/UI, and Killzone-specific labels while preserving standard PSP input. |
 | P2 | Shared dual-clock pad scripts | MGA-F-027 | Fork commit `245031c` + parent profiles | Header-only scripts are neutral and v3 profiles drive PPSSPP vblanks plus native presents. |
 | P2 | Capture-free presentation limit | MGA-F-030 | Fork commit `245031c` | `SR_EXIT_AFTER_PRESENT` logs the terminal present and exits cleanly without a game-derived capture. |
 | P2 | Presentation/input acceptance diagnostics | MGA-F-035, MGA-F-037 | Fork commit `3f7d48e` | Exact presentation captures plus scripted/live input-edge logs remain opt-in and title-neutral. |
@@ -116,7 +117,7 @@ Generated modules must not all export the same `sr_register_all` symbol.
 
 The local implementation now provides prefixed symbols and descriptors,
 collision-checked activation/deactivation, exact path/hash/name/base matching,
-and three same-base Metal Gear Acid overlays. The remaining upstream work is
+and four same-base Metal Gear Acid overlays. The remaining upstream work is
 API review, broader title regression, and deciding whether live-code
 verification belongs in the generic generator or a title integration layer.
 
@@ -274,6 +275,7 @@ Do not upstream these as generic defaults:
 - Metal Gear Acid's raw-LBN overlay paths, hashes, load bases, and 56-target
   front-end allowlist;
 - module base expectations;
+- whether the Killzone-specific twin-stick side channel is enabled;
 - frame-count smoke-test content; or
 - a blanket rule that every `sce*` module is HLE-replaced.
 

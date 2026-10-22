@@ -1,7 +1,7 @@
 # Findings
 
 Project milestones are defined in [PLAN.md](PLAN.md), and work derived from
-these findings is tracked in [TODO.md](TODO.md).
+these findings is tracked internally.
 
 Validated through 2026-10-22 against:
 
@@ -1042,6 +1042,15 @@ A disposable native fixture loads the save, reaches the `0x18a00` and
 This provides a repeatable gameplay/audio route without replaying the long
 scripted prologue.
 
+This fixture and `config/mga_load_save_probe.pad` are now the Phase 4
+reference route. A fresh 2026-10-22 D3D12 1x run followed LOAD GAME to the
+map, selected `Lobito Laboratory - Outside Gate`, confirmed STAGE01 and its
+delayed prompt, activated native `st01` at `0x09b6c600`, and exited cleanly at
+present 10,000. It reported zero audio drops or underruns and no runtime
+failure marker; post-run fixture verification remained byte-identical. This
+establishes the deterministic route, not gameplay, combat, or save-creation
+coverage.
+
 ### MGA-F-051 - Structured timing separates host, submission, and GPU cost
 
 Opt-in diagnostics now write every measured presentation to a stable CSV and
@@ -1362,6 +1371,27 @@ Default D3D12 and Vulkan front-end routes, plus both native STAGE01 routes,
 pass with unchanged fixtures and clean failure/audio markers. Parent tests
 cover the edge classifier; D3D12 tests cover logical capture
 canonicalization.
+
+### MGA-F-061 - Circle-only input completes the initial default-deck setup
+
+The broad `0xf3f9` briefing pulses used for the first st00 discovery mixed
+directional, shoulder, face, START, and SELECT inputs, so they could not prove
+which control advanced the new-game flow. The new deterministic
+`mga_new_game_setup.pad` retains the established boot/title timing, selects
+NEW GAME, then sends only CIRCLE edges through present 18,000.
+
+Two D3D12 1x runs from separate empty memstick fixtures loaded native init,
+title, and prologue overlays and produced byte-identical captures at presents
+18,000, 21,000, 24,000, 27,000, and 29,900. The route advances from Teliko's
+opening dialogue through the card-effect tutorial and initial battlefield.
+At present 29,900 it is waiting on a playable six-card hand with `18/30`
+remaining from the default 30-card deck.
+
+Both runs exited normally at present 30,000, contained no runtime failure
+marker, and left their empty fixtures unchanged. This establishes NEW GAME
+entry and initial default-deck setup. It does not yet validate deliberate
+movement, camera, card selection, action execution, pause, cancel/confirm,
+combat, or saving.
 
 ## Ranked improvement opportunities
 

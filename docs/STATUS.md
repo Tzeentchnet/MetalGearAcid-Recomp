@@ -1,9 +1,9 @@
-# Project status and repository history
+# Project status
 
 Last updated: 2026-10-22
 
 Milestone definitions and release gates are maintained in [PLAN.md](PLAN.md).
-Ready and blocked work is tracked in [TODO.md](TODO.md).
+Ready and blocked work is tracked internally.
 
 ## Current status
 
@@ -54,33 +54,16 @@ Ready and blocked work is tracked in [TODO.md](TODO.md).
   transition.
 - PSP scratchpad support and a bounded, scheduler-aware interpreter carry the
   deterministic route into st00 through present 30,000.
+- A Circle-only new-game profile completes initial default-deck setup. Two
+  empty-fixture runs produce identical checkpoints through the playable
+  six-card prologue hand and exit without a runtime failure marker.
 - Native STAGE01 reduces the matched post-Forest route's interpreted
   instructions by 85.51% and median wall time by 64.74%, with byte-identical
   checkpoints and unchanged save fixtures.
 
-The next gameplay milestone remains identifying the dark briefing's intended
-advance control and completing a playable, savable new-game first-mission
-route. Feature-class D3D12/Vulkan goldens, movies, full-stage pacing, campaign
-validation, and long soaks also remain. The next ranked renderer experiment
-is replacing unsafe serialized pipeline libraries with validated per-PSO
-persistence.
-
-## History and attribution
-
-On 2026-10-22, the parent `master` history and the runtime fork's `kzl` and
-`main` histories were rewritten to remove Copilot co-author trailers while
-preserving the human author and committer identities. The cleaned runtime tips
-are:
-
-- runtime `kzl`: `41c8cb4`; and
-- runtime `main`: `2a86b1f`.
-
-The current parent tip is always `origin/master`.
-
-Because those branches were force-pushed, an existing clone should preserve
-any local work and rebase or cherry-pick it onto the cleaned history. A fresh
-recursive clone is the simplest option when no local work must be retained.
-
-Project policy prohibits adding AI tools as commit authors, committers, or
-co-authors; see the tracked
-[Copilot instructions](../.github/copilot-instructions.md).
+The next gameplay milestone is deliberate movement, camera, card/action,
+pause, and cancel/confirm validation from the six-card prologue state,
+followed by combat, stage transitions, and native save/reload. Feature-class
+D3D12/Vulkan goldens, movies, full-stage pacing, campaign validation, and
+long soaks also remain. The next ranked renderer experiment is replacing
+unsafe serialized pipeline libraries with validated per-PSO persistence.

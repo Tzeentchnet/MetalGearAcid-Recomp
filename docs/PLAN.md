@@ -3,7 +3,7 @@
 This plan defines how Metal Gear Acid progresses from the current bootable
 hybrid recompilation to a reproducible, validated Windows release.
 
-Execution is tracked in [TODO.md](TODO.md). Technical facts belong in
+Execution is tracked internally. Technical facts belong in
 [FINDINGS.md](FINDINGS.md), framework work in [UPSTREAM.md](UPSTREAM.md), and
 commands and measurable checks in [REPRODUCTION.md](REPRODUCTION.md).
 
@@ -99,7 +99,8 @@ clearly rather than appear to work.
    impressions.
 7. Preserve a working checkpoint while replacing interpreter paths with
    generated native modules.
-8. Update the TODO and affected documentation in the same change as the code.
+8. Update the internal task tracker and affected documentation in the same
+   change as the code.
 
 ## Milestones
 
@@ -294,7 +295,7 @@ Work:
 
 1. Build a stage/overlay inventory from the extracted stage tree.
 2. Track each campaign stage, intermission, ending, epilogue, suspend-save, and
-   title overlay in [TODO.md](TODO.md).
+   title overlay in the internal task tracker.
 3. Validate all mandatory movies and audio paths.
 4. Validate deck/card progression, settings, load/save slots, suspend data,
    game over/retry, and ending/credits.
@@ -372,7 +373,7 @@ Exit gate:
 - public and protected CI pass;
 - clean-clone reproduction passes;
 - content and license audits pass;
-- all release-blocking TODO items are complete; and
+- all release-blocking work items are complete; and
 - the [root README](../README.md), [FINDINGS.md](FINDINGS.md),
   [UPSTREAM.md](UPSTREAM.md), and [REPRODUCTION.md](REPRODUCTION.md) match the
   shipped behavior.
@@ -426,21 +427,23 @@ Documentation updates are part of task completion, not follow-up cleanup.
 | Framework design, priority, or upstream status | `UPSTREAM.md` |
 | Command, environment variable, expected output, or threshold | `REPRODUCTION.md` |
 | Milestone, scope, dependency, or release gate | `PLAN.md` |
-| Task begins, completes, blocks, or changes priority | `TODO.md` |
+| Task begins, completes, blocks, or changes priority | Internal task tracker (not published) |
 | User-visible status, requirements, or run instructions | root `README.md` |
 | Document added/removed or evidence policy changed | `docs/README.md` |
 | Disc/module identity changes | `config/mga.toml`, `FINDINGS.md`, and `REPRODUCTION.md` |
 
-Before marking any TODO item complete:
+Before marking any tracked work item complete:
 
 1. attach the validation command or evidence in its completion note;
 2. update every applicable document from the table above;
 3. verify relative Markdown links;
 4. run `git diff --check`;
 5. confirm no game-derived file became tracked; and
-6. leave the next ready P0 item visible in the TODO's current-focus section.
+6. leave the next ready P0 item visible in the internal tracker's
+   current-focus section.
 
-At the end of every work session, [TODO.md](TODO.md) must reflect reality:
+At the end of every work session, the internal task tracker must reflect
+reality:
 
 - active work is marked in progress;
 - completed work is checked with date and evidence;
@@ -460,4 +463,4 @@ At the end of every work session, [TODO.md](TODO.md) must reflect reality:
 | Renderer fixes regress another title | Maintain software goldens and run Killzone regression checks. |
 | Save changes corrupt PSP data | Keep PPSSPP round-trip fixtures and back up local saves. |
 | Copyrighted payload enters Git | Run tracked-content audits and keep all protected artifacts ignored. |
-| Documentation becomes stale | Enforce the maintenance contract in every TODO completion and review. |
+| Documentation becomes stale | Enforce the maintenance contract in every tracked completion and review. |

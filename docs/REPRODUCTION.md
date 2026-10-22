@@ -1,11 +1,11 @@
 # Reproduction and acceptance checks
 
-Milestone gates are defined in [PLAN.md](PLAN.md), and the live validation work
-is tracked in [TODO.md](TODO.md).
+Milestone gates are defined in [PLAN.md](PLAN.md), and active validation work
+is tracked internally.
 
 All generated game data remains under ignored `build/` and `out/` directories.
 
-Clone the private parent with its public runtime fork:
+Clone the repository with its runtime fork:
 
 ```powershell
 git clone --recurse-submodules `
@@ -13,9 +13,12 @@ git clone --recurse-submodules `
 Set-Location MetalGearAcid-Recomp
 ```
 
-GitHub authentication is required for the private parent.
+For ordinary local setup, the root `install.py` automates runtime checkout,
+sections 1-3, and ISO-path configuration for the launcher. The explicit
+commands below remain authoritative for reproducible validation and release
+evidence.
 
-The parent currently pins tested fork tip `41c8cb4`. The relevant sequence is:
+The parent currently pins tested fork tip `66c18a5`. The relevant sequence is:
 
 - `e2dbc91` - runtime PRX modules and synthetic runtime tests;
 - `9683b44` - runtime import patches and initial VFPU7 codegen;
@@ -32,6 +35,8 @@ The parent currently pins tested fork tip `41c8cb4`. The relevant sequence is:
 - `2584d53` - PSP-quantized D3D12/Vulkan nearest and bilinear sampling.
 - `41c8cb4` - PSP integer texture-function/fog math and native-format logical
   D3D12 golden capture.
+- `66c18a5` - title-configurable Killzone twin-stick behavior and standard PSP
+  controller configuration for other integrations.
 
 ## 1. Extract the verified disc
 
@@ -291,6 +296,7 @@ Profiles:
 | `mga_boot.pad` | Periodic START pulses for boot/logo/title advancement |
 | `mga_menu_probe.pad` | Boot pulses plus deterministic START/DOWN/UP/CIRCLE probes |
 | `mga_load_save_probe.pad` | Load #8725, select STAGE01 with UP, and confirm the delayed prompt |
+| `mga_new_game_setup.pad` | Circle-only NEW GAME route through default deck setup |
 | `mga_st00_probe.pad` | Broad-input new-game route into the first mission overlay |
 
 The PPSSPP and native columns intentionally differ. PPSSPP reads vblank
@@ -543,6 +549,37 @@ stack/transition regression, set both
 `SR_FAST_FORWARD_PRESENT` and `SR_EXIT_AFTER_PRESENT` to `50000`; the accepted
 run reached the limit in 108.8s without a host crash or interpreter stop.
 
+### New-game deck/card setup probe
+
+Create a fresh empty native fixture, then run the D3D12 build with:
+
+```powershell
+$env:SR_PADSCRIPT = "$PWD\config\mga_new_game_setup.pad"
+$env:SR_FAST_FORWARD_PRESENT = "30000"
+$env:SR_EXIT_AFTER_PRESENT = "30000"
+$env:SR_FBCAPTURE_PRESENTS = "18000,21000,24000,27000,29900"
+$env:SR_PADLOG = "1"
+$env:SR_MODULE_LOG = "1"
+```
+
+After NEW GAME is selected, the profile sends only CIRCLE edges. Acceptance
+requires native init `0xf500`, title `0x1c100`, and prologue `0x1c600`
+overlays, followed by a clean present-30,000 exit. The checkpoints are:
+
+| Present | State | SHA-256 |
+|---:|---|---|
+| `18000` | Teliko opening dialogue | `94d377da279a9f2e7cf1554d556670245e86bb9902268d5cf5314a79189ebf38` |
+| `21000` | Card special-effect tutorial | `c778973396450b25ac57b50b03d372e67624113d73117a1d6c42c7b43f53a418` |
+| `24000` | Initial card battlefield | `d1d7cab2dc426e04f21b45a27e3db70368f21b45a27e254eae5fa428b22f111` |
+| `27000` | Tutorial dialogue | `4be2f3951ab00ca2d46dd28ce3461bf3c989f54eb52767dfe2e0f6372a505a92` |
+| `29900` | Playable six-card hand; `18/30` deck remaining | `f4601d3c818e531c42fe51bf5cfdc34b2045995fb9cc3794db07d91e4389cb8f` |
+
+Two fresh-fixture runs produced all five hashes identically. Both logs contain
+no unknown HLE, unimplemented or permissive fallback, host crash, watchdog,
+interpreter stop, device-removal, or fatal marker. Verify each empty fixture
+after the run; it must remain unchanged. This gate covers entry and initial
+default-deck setup, not the gameplay controls in T-4.3.
+
 ### First post-prologue st00 probe
 
 Use `config\mga_st00_probe.pad` with:
@@ -790,14 +827,54 @@ the standard inserted-card variables. The script:
 4. confirms STAGE01; and
 5. confirms the delayed OK prompt.
 
+This is the Phase 4 reference route. Use a new output path for every run:
+
+```powershell
+$run = "$PWD\build\mga\stage01-reference"
+$fixture = "$run\fixture"
+
+python tools\mga\memstick.py create $fixture `
+  --backend native `
+  --template D:\protected\gamefaqs-8725-native
+
+$env:PSP_ISO = "C:\path\to\Metal Gear Acid (USA).iso"
+$env:SR_GPU = "d3d12"
+$env:SR_D3D12_SCALE = "1"
+$env:SR_GRAPHICS_CONFIG = "0"
+$env:SR_INPUT_CONFIG = "0"
+$env:SR_FSDIR = $fixture
+$env:SR_MEMSTICK = "$fixture\ms0"
+$env:SR_MEMSTICK_STATE = "inserted"
+$env:SR_PADSCRIPT = "$PWD\config\mga_load_save_probe.pad"
+$env:SR_FAST_FORWARD_PRESENT = "9000"
+$env:SR_EXIT_AFTER_PRESENT = "10000"
+$env:SR_PADLOG = "1"
+$env:SR_INTERP_MISS_LOG = "$run\dispatch-misses.txt"
+$env:SR_INTERP_PROFILE = "$run\interpreter.tsv"
+Remove-Item Env:SR_DISABLE_NATIVE_MODULES -ErrorAction SilentlyContinue
+
+out\build\clang-cl-d3d12\mga.exe --boot `
+  build\mga\gen\mga_image.bin 08804000 0880432c none --gui `
+  1> "$run\stdout.log" 2> "$run\stderr.log"
+if ($LASTEXITCODE -ne 0) {
+  throw "Reference route exited with code $LASTEXITCODE"
+}
+
+python tools\mga\memstick.py verify $fixture --backend native
+```
+
 Acceptance requires:
 
 ```text
 module loader: allocated disc0:/sce_lbn0x11e50_size0x2c138 at 09b6c600-09b8f800
 module loader: mgp_stage ... base=09b6c600 size=23200 ... (native)
+presentation limit reached at present 10000
+audio: XAudio2 shutdown ... dropped=0 ... underruns=0
 ```
 
-Verify the disposable fixture after every run. The source template must never
+The log must contain no unknown HLE, unimplemented or permissive fallback,
+host crash, watchdog, interpreter stop, device-removal, or fatal marker.
+`memstick.py verify` must pass after every run. The source template must never
 be used directly.
 
 For a matched interpreted control:
