@@ -4,6 +4,10 @@ This document converts [FINDINGS.md](FINDINGS.md) into work for the upstream
 `psp-recomp` fork. Implementation status and dependencies are tracked in
 [TODO.md](TODO.md), primarily Phase 1 and Phase 3.
 
+The current published `kzl` tip is cleaned commit `40447fd`. The fork's
+`kzl` and `main` histories were force-pushed on 2026-10-22 to remove Copilot
+co-author trailers while preserving human authorship.
+
 Status values:
 
 - **Local** - implemented in this worktree but not yet upstreamed.

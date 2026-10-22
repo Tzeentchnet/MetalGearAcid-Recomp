@@ -1,6 +1,6 @@
 # Project TODO
 
-Last updated: 2026-10-21
+Last updated: 2026-10-22
 
 This is the live execution list for [PLAN.md](PLAN.md). It must be updated in
 the same change as implementation work.

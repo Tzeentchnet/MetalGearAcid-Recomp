@@ -9,7 +9,7 @@ commands and measurable checks in [REPRODUCTION.md](REPRODUCTION.md).
 
 ## Current baseline
 
-As of 2026-10-21:
+As of 2026-10-22:
 
 - the supported ULUS-10006 v1.00 disc is pinned and extracted reproducibly;
 - the `mgp_main` PRX generates 9,914 functions with zero trapping stubs;

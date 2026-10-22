@@ -3,7 +3,7 @@
 Project milestones are defined in [PLAN.md](PLAN.md), and work derived from
 these findings is tracked in [TODO.md](TODO.md).
 
-Validated on 2026-10-21 against:
+Validated through 2026-10-22 against:
 
 - Metal Gear Acid USA, `ULUS-10006`, disc version `1.00`;
 - PPSSPP `v1.20.4`, interpreter mode;

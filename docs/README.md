@@ -40,13 +40,26 @@ is active. KJFS, ZLIB, sound, init, title, and prologue use generated native
 tables; remaining post-load-patched overlay functions are covered by an exact
 module-qualified allowlist. Empty, removed, and existing-save memory-stick
 paths pass. Gameplay, card/campaign PMFs, save creation, broader D3D12
-golden/scaling coverage, and full-game stability remain later milestones.
+feature-class golden coverage, and full-game stability remain later
+milestones.
 The D3D12 build now passes
 the deterministic front-end gate and is the recommended performance path;
 software rendering remains the pixel-exact reference. Scales 1x-8x pass that
 gate, 1x/2x/4x/8x also load the selected post-Forest STAGE01 route, and
 structured profiling identifies native STAGE01 conversion as the dominant
 next measured performance opportunity.
+
+## History and attribution
+
+The parent `master` branch and runtime fork `kzl`/`main` branches were
+force-pushed on 2026-10-22 to remove Copilot co-author trailers. Human author
+and committer identities were preserved. The cleaned tips are parent
+`origin/master`, runtime `kzl` `40447fd`, and runtime `main` `2a86b1f`.
+
+Existing clones should preserve local work and rebase or cherry-pick it onto
+the cleaned history; otherwise use a fresh recursive clone. The tracked
+[Copilot instructions](../.github/copilot-instructions.md) prohibit AI tools
+from being added as authors, committers, or co-authors.
 
 Reduced machine-readable evidence lives in
 `reference/native_frontend.json`, `reference/native_frontend_menu.json`, and

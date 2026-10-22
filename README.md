@@ -25,6 +25,23 @@ git clone --recurse-submodules `
 The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
 `40447fd`.
 
+### History and attribution
+
+On 2026-10-22, the parent `master` history and the runtime fork's `kzl` and
+`main` histories were rewritten to remove Copilot co-author trailers while
+preserving the human author and committer identities. The cleaned runtime tips
+are:
+
+- runtime `kzl`: `40447fd`; and
+- runtime `main`: `2a86b1f`.
+
+Because those branches were force-pushed, an existing clone should preserve
+any local work and rebase or cherry-pick it onto the cleaned history. A fresh
+recursive clone is the simplest option when no local work must be retained.
+The current parent tip is always `origin/master`.
+Project policy prohibits adding AI tools as commit authors, committers, or
+co-authors; see [.github/copilot-instructions.md](.github/copilot-instructions.md).
+
 ## Documentation
 
 - [Documentation index](docs/README.md)
@@ -159,6 +176,11 @@ GPU timing and `SR_INTERP_PROFILE` writes aggregate fallback cost by module and
 target. `SR_D3D12_CAPTURE_INTERNAL=1` preserves full scaled output for
 resolution analysis. See [REPRODUCTION.md](docs/REPRODUCTION.md) for the
 report tools and acceptance matrix.
+
+Serialized D3D12 pipeline-library persistence is not a supported gameplay
+setting: it removed the validation GPU on reuse. In-memory asynchronous PSOs
+remain enabled; disk persistence requires the explicit
+`SR_D3D12_UNSAFE_PSO_CACHE=1` diagnostic acknowledgement.
 
 For deterministic tests, use the shared profiles in `config/` and create
 isolated PPSSPP/native memstick roots with `tools\mga\memstick.py`; see
