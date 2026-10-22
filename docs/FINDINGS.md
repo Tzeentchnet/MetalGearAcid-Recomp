@@ -1320,15 +1320,59 @@ STAGE01 route with unchanged save fixtures and no runtime failure marker.
 Single-run timing and D3D12 GPU timestamps show no measurable cost on these
 routes; dedicated repeated performance thresholds remain future work.
 
+### MGA-F-060 - Remaining large deltas are hardware edge behavior
+
+Fork commit `41c8cb4` ports the software renderer's integer texture-function
+and fog formulas to both GPU shaders. It also canonicalizes logical D3D12
+golden captures through the active PSP framebuffer format; full internal-scale
+captures remain raw.
+
+The capture conversion is diagnostic, not a rendering shortcut. D3D12 keeps
+full-range RGBA internally for blending and framebuffer feedback, then packs
+logical goldens as 5650/5551/4444 exactly as the software capture path does.
+This removes expansion bias from the comparison.
+
+Final front-end results against the software oracle:
+
+| Renderer | Title pixels above delta 8 | Title maximum delta | Fade above delta 8 |
+|---|---:|---:|---:|
+| D3D12 | `0.28-0.33%` | `15-16` | one pixel |
+| Vulkan | `1.97-2.03%` | `17` | `0.45%` |
+
+Integer texture-function math reduces Vulkan's title population from
+`3.58-3.63%` to `1.97-2.03%`. D3D12's source-color population was already
+dominated by its capture representation; native-format canonicalization
+reduces it from `1.02-1.04%` to `0.28-0.33%`.
+
+`tools/mga/frame_delta_report.py` classifies each above-threshold pixel against
+the software-reference neighborhood:
+
+| Renderer | Edge-adjacent share | Neighbor-resolved share | Interior pixels/frame |
+|---|---:|---:|---:|
+| D3D12 title | `99.73-99.77%` | `24.59-27.64%` | `1` |
+| Vulkan title | `99.81-100%` | `49.28-50.09%` | `0-5` |
+
+The remaining large deltas are therefore isolated to hardware triangle
+coverage/interpolation at reference edges. They are not evidence of a broad
+texture decode, texture-function, fog, presentation, or interior color error.
+Achieving exact edge parity would require a dedicated PSP coverage strategy,
+not a wider whole-frame color tolerance.
+
+Default D3D12 and Vulkan front-end routes, plus both native STAGE01 routes,
+pass with unchanged fixtures and clean failure/audio markers. Parent tests
+cover the edge classifier; D3D12 tests cover logical capture
+canonicalization.
+
 ## Ranked improvement opportunities
 
 | Rank | Priority | Opportunity | Evidence | Confidence | Disposition |
 |---:|---|---|---|---:|---|
 | Done | P1 | Generate, live-verify, and activate native `st01` | 85.51% fewer interpreted instructions with exact frame parity | 10/10 | Completed in MGA-F-057 |
 | Done | P1 | Implement PSP-quantized hardware sampling | D3D12 title pixels above delta 8 fall from ~13.6% to ~1.0%; Vulkan also improves | 10/10 | Completed in MGA-F-059 |
-| 1 | P1 | Build feature-class D3D12/Vulkan goldens and isolate remaining deltas | Quantized sampling helps substantially, but maximum title delta remains 17 | 9/10 | Next graphics investigation |
-| 2 | P1 | Replace serialized pipeline libraries with safe per-PSO persistence | Reusing the current disk cache removes the D3D12 device | 10/10 | Keep gated until redesigned |
-| 3 | P1 | Continue CMake/CTest integration for existing graphics/runtime tests | Relevant tests existed but were not reachable from the parent CTest surface | 9/10 | Incremental maintenance |
+| Done | P1 | Build feature-class D3D12/Vulkan goldens and isolate remaining deltas | 99.7-100% of residual large pixels are edge-adjacent | 10/10 | Completed in MGA-F-060 |
+| 1 | P1 | Replace serialized pipeline libraries with safe per-PSO persistence | Reusing the current disk cache removes the D3D12 device | 10/10 | Keep gated until redesigned |
+| 2 | P1 | Continue CMake/CTest integration for existing graphics/runtime tests | Relevant tests existed but were not reachable from the parent CTest surface | 9/10 | Incremental maintenance |
+| 3 | P2 | Investigate exact PSP edge coverage if later scenes require it | Current title residuals are almost exclusively hardware edge pixels | 9/10 | Defer pending broader goldens |
 | 4 | P2 | Profile the remaining front-end and STAGE01 fallback entries | The revised exact sets contain 56 and 110 targets respectively | 9/10 | Re-rank after broader gameplay |
 | - | Reject | Switch all generated code to `/O2` | 0.96% median gain, below variance/action threshold | 9/10 | Keep `/O1` |
 | - | Defer | Tune VRS for the current routes | No measurable throughput or capture difference | 9/10 | Revisit on heavier scenes |

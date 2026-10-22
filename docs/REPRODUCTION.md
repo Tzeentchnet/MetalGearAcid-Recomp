@@ -15,7 +15,7 @@ Set-Location MetalGearAcid-Recomp
 
 GitHub authentication is required for the private parent.
 
-The parent currently pins tested fork tip `2584d53`. The relevant sequence is:
+The parent currently pins tested fork tip `41c8cb4`. The relevant sequence is:
 
 - `e2dbc91` - runtime PRX modules and synthetic runtime tests;
 - `9683b44` - runtime import patches and initial VFPU7 codegen;
@@ -30,6 +30,8 @@ The parent currently pins tested fork tip `2584d53`. The relevant sequence is:
 - `06e7010` - repeated live-code verification and runtime-JAL-aware overlay
   validation.
 - `2584d53` - PSP-quantized D3D12/Vulkan nearest and bilinear sampling.
+- `41c8cb4` - PSP integer texture-function/fog math and native-format logical
+  D3D12 golden capture.
 
 ## 1. Extract the verified disc
 
@@ -370,7 +372,7 @@ against the downloaded source directory.
 Current parent-tool test result:
 
 ```text
-Ran 28 tests
+Ran 30 tests
 OK
 ```
 
@@ -617,7 +619,9 @@ The measured title checkpoints have maximum channel delta 18-25 and about
 13.6% of pixels above delta 8. The fade checkpoint has maximum delta 9 and
 0.61% above delta 8 with host hardware filtering. The default
 PSP-quantized sampler reduces the title frames to `1.02-1.04%` above delta 8
-with maximum delta 17, and the fade to `0.03%` above delta 8.
+with maximum delta 17. Integer texture-function/fog math and native-format
+logical capture further reduce D3D12 to `0.28-0.33%` above delta 8 with
+maximum delta 16; only one fade pixel remains above delta 8.
 
 ### Structured timing and interpreter profiles
 
@@ -742,13 +746,26 @@ Measured front-end deltas:
 | Renderer | Sampler | Title pixels above delta 8 | Fade above delta 8 |
 |---|---|---:|---:|
 | D3D12 | Host hardware | `13.54-13.62%` | `0.61%` |
-| D3D12 | PSP-quantized | `1.02-1.04%` | `0.03%` |
+| D3D12 | PSP-quantized sampler | `1.02-1.04%` | `0.03%` |
+| D3D12 | Final integer/canonical path | `0.28-0.33%` | one pixel |
 | Vulkan | Host hardware | `5.81-5.88%` | `0.42%` |
-| Vulkan | PSP-quantized | `3.58-3.63%` | `0.45%` |
+| Vulkan | PSP-quantized sampler | `3.58-3.63%` | `0.45%` |
+| Vulkan | Final integer path | `1.97-2.03%` | `0.45%` |
 
-Maximum title delta is 17 on both quantized paths. Both also complete the
-native STAGE01 route with unchanged save fixtures and clean failure/audio
-markers.
+Classify the residual by software-reference neighborhood:
+
+```powershell
+python tools\mga\frame_delta_report.py `
+  build\mga\renderer-gdi `
+  build\mga\color-d3d12-canonical `
+  --threshold 8 `
+  --out build\mga\color-d3d12-canonical\edge-report.json
+```
+
+Repeat for Vulkan. D3D12 places `99.73-99.77%` and Vulkan
+`99.81-100%` of remaining large title deltas next to reference edges, with
+only `0-5` interior pixels per frame. Both renderers also complete the native
+STAGE01 route with unchanged save fixtures and clean failure/audio markers.
 
 One diagnostic run measured:
 

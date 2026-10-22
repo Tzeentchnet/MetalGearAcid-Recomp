@@ -35,6 +35,8 @@ As of 2026-10-22:
   deterministic front-end gate; and
 - PSP-quantized D3D12/Vulkan sampling materially narrows textured-frame
   deltas without measurable route cost; and
+- native-format golden conversion and edge/interior classification isolate
+  the remaining title deltas to hardware coverage/interpolation; and
 - runtime-JAL-aware live verification keeps linker-adjusted calls native while
   genuine code mismatches retain module-qualified fallback; and
 - native STAGE01 reduces matched route interpreter work by 85.51% with exact
@@ -322,8 +324,9 @@ removes 85.51% of the matched route's interpreted instructions.
 GDI and both Vulkan modes pass the deterministic front end; Vulkan GE remains
 within functional metrics but not the software pixel oracle. PSP-quantized
 hardware sampling is active by default and materially narrows both GPU
-renderers' deltas. Remaining feature-class tolerance, movies, broader
-gameplay/audio synchronization, and soak coverage remain.
+renderers' deltas. The remaining title population is almost entirely
+edge-adjacent; broader feature-class scenes, movies, gameplay/audio
+synchronization, and soak coverage remain.
 
 Work:
 

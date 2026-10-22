@@ -41,9 +41,11 @@ Ready and blocked work is tracked in [TODO.md](TODO.md).
   GE backend all pass the deterministic front-end functional/audio/fallback
   gate. The Vulkan presenter preserves software captures exactly.
 - D3D12 and Vulkan use PSP-quantized nearest/bilinear sampling by default.
-  This reduces title pixels above delta 8 from about 13.6% to 1.0% on D3D12
-  and from about 5.8% to 3.6% on Vulkan. Both still retain maximum delta 17
-  cases that need feature-class review.
+  Integer texture-function/fog math and native-format D3D12 logical captures
+  reduce title pixels above delta 8 to 0.28-0.33% on D3D12 and 1.97-2.03% on
+  Vulkan. At least 99.7% of those remaining pixels are adjacent to
+  software-reference edges, isolating the residual to hardware
+  coverage/interpolation rather than broad interior color errors.
 - Failed live-code wrappers remain in the interpreter, eliminating the
   post-prologue host stack overflow; the 50,000-presentation regression route
   exits cleanly.
@@ -60,7 +62,8 @@ The next gameplay milestone remains identifying the dark briefing's intended
 advance control and completing a playable, savable new-game first-mission
 route. Feature-class D3D12/Vulkan goldens, movies, full-stage pacing, campaign
 validation, and long soaks also remain. The next ranked renderer experiment
-is isolating the remaining D3D12/Vulkan feature-class deltas.
+is replacing unsafe serialized pipeline libraries with validated per-PSO
+persistence.
 
 ## History and attribution
 
@@ -69,7 +72,7 @@ On 2026-10-22, the parent `master` history and the runtime fork's `kzl` and
 preserving the human author and committer identities. The cleaned runtime tips
 are:
 
-- runtime `kzl`: `2584d53`; and
+- runtime `kzl`: `41c8cb4`; and
 - runtime `main`: `2a86b1f`.
 
 The current parent tip is always `origin/master`.

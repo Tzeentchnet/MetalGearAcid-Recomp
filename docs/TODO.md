@@ -81,8 +81,9 @@ The next ready P0 work is:
     submodule was subsequently advanced to tested fidelity commits `245031c`
     and `96dd536`, then to native-overlay/audio/stability commit `3f7d48e` and
     renderer/profiling diagnostics commit `40447fd`, live-overlay verification
-    commit `06e7010`, then quantized GPU sampling commit `2584d53`. The parent
-    is pinned to `2584d53`. The fork branch is published at
+    commit `06e7010`, quantized GPU sampling commit `2584d53`, then
+    texture-function/golden-capture parity commit `41c8cb4`. The parent is
+    pinned to `41c8cb4`. The fork branch is published at
     `Tzeentchnet/psp-recomp`; the parent is published privately at
     `Tzeentchnet/MetalGearAcid-Recomp`.
 - [x] **T-1.2 P0** Add synthetic runtime PRX loader tests.
@@ -385,6 +386,11 @@ The next ready P0 work is:
     above delta 8 to 1.02-1.04% on D3D12 and 3.58-3.63% on Vulkan. Maximum
     delta remains 17, so geometry/interpolation/texture-function feature
     isolation remains.
+  - Progress 2026-10-22: integer texture-function/fog math and native-format
+    logical D3D12 capture reduce title pixels above delta 8 to 0.28-0.33% on
+    D3D12 and 1.97-2.03% on Vulkan. Edge classification places 99.7-100% of
+    remaining large deltas at software-reference edges, with only 0-5
+    interior pixels per title frame.
 - [x] **T-6.4 P1** Validate supported internal resolutions and presentation
   layouts.
   - Done 2026-10-22: every D3D12 scale from 1x through 8x passes the exact
@@ -485,6 +491,13 @@ The next ready P0 work is:
     supported textures. Front-end and native STAGE01 routes pass on both
     backends with no measured D3D12 GPU-cost regression.
     `SR_GPU_PSP_SAMPLER=0` retains the hardware-filter control.
+- [x] **T-6.17 P1** Build feature-class GPU goldens and isolate residual
+  front-end deltas.
+  - Done 2026-10-22: matched GDI/D3D12/Vulkan captures now distinguish
+    sampling, texture-function/fog, framebuffer-format conversion, and
+    edge/interior classes. The remaining >8 population is almost entirely
+    hardware coverage/interpolation at reference edges; parent edge-report
+    tests and D3D12 capture-format vectors preserve the classification.
 
 ## Phase 7 - CI and source release
 
@@ -493,8 +506,9 @@ The next ready P0 work is:
   - Progress 2026-10-22: parent CTest now exposes graphics-configuration and
     D3D12 vertex/state/layout tests in addition to the existing runtime set;
     structured-performance, interpreter-profile, and scaling-capture parent
-    tools have unit coverage. The Vulkan preset passes the seven generic
-    CTest targets. CI wiring remains.
+    tools have unit coverage. The edge/interior golden classifier raises the
+    parent suite to 30 tests. The Vulkan preset passes the seven generic CTest
+    targets. CI wiring remains.
 - [ ] **T-7.2 P0** Add protected CI for verified extraction, codegen, full
   native build, trace checks, and frame metrics.
 - [ ] **T-7.3 P0** Run a clean recursive clone/build/run from a separate path.
