@@ -23,7 +23,7 @@ git clone --recurse-submodules `
 ```
 
 The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
-`40447fd`.
+`06e7010`.
 
 ## Documentation
 

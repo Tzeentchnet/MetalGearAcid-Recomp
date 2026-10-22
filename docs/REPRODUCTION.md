@@ -15,7 +15,7 @@ Set-Location MetalGearAcid-Recomp
 
 GitHub authentication is required for the private parent.
 
-The parent currently pins tested fork tip `40447fd`. The relevant sequence is:
+The parent currently pins tested fork tip `06e7010`. The relevant sequence is:
 
 - `e2dbc91` - runtime PRX modules and synthetic runtime tests;
 - `9683b44` - runtime import patches and initial VFPU7 codegen;
@@ -27,6 +27,8 @@ The parent currently pins tested fork tip `40447fd`. The relevant sequence is:
   memory-stick state, and continuous XAudio2 buffering.
 - `40447fd` - structured CPU/GPU/interpreter profiles, full-resolution scaled
   capture, PSO persistence safety, and clean bounded-run shutdown.
+- `06e7010` - repeated live-code verification and runtime-JAL-aware overlay
+  validation.
 
 ## 1. Extract the verified disc
 
@@ -60,6 +62,7 @@ stage/init:       636/636 functions, 0 trapping stubs
 stage/title:      997/997 functions, 0 trapping stubs
 stage/prologue: 1091/1091 functions, 0 trapping stubs
 stage/st00:      1000/1000 functions, 0 trapping stubs
+stage/st01:      1351/1351 functions, 0 trapping stubs
 46628 relocations
 117 imports across 19 libraries
 ```
@@ -475,7 +478,7 @@ The checker requires:
 - LOAD GAME selected at present 3120;
 - NEW GAME reselected at present 3240;
 - title fade after CIRCLE at present 3360;
-- exactly the 266 reviewed module-qualified targets in
+- exactly the 56 reviewed module-qualified targets in
   `config/mga_frontend_fallbacks.toml`;
 - zero unimplemented HLEs, host crashes, watchdogs, interpreter stops, and
   permissive fallbacks;
@@ -493,8 +496,9 @@ across all three runs:
 | `3240` | `90eb414f7b9e5dc4fcd92acc385b4cf12e1fc073d16ca41fcc12d72c6ec831fe` |
 | `3360` | `c4019d29431524e236da888bc7ac749410292d817a162b1f7dacd226ec6204ff` |
 
-The final route classifies those targets as 36 init, 77 title, and 153
-prologue. The reduced report is
+The final route classifies those targets as 6 init, 13 title, and 37
+prologue. Runtime-JAL-aware verification reduced the previous 266-target set
+without changing any checkpoint pixels. The reduced report is
 [reference/native_frontend_menu.json](reference/native_frontend_menu.json).
 Never commit the source logs, save fixture, or captures.
 
@@ -682,11 +686,33 @@ Acceptance requires:
 
 ```text
 module loader: allocated disc0:/sce_lbn0x11e50_size0x2c138 at 09b6c600-09b8f800
-module loader: mgp_stage ... base=09b6c600 size=23200
+module loader: mgp_stage ... base=09b6c600 size=23200 ... (native)
 ```
 
 Verify the disposable fixture after every run. The source template must never
 be used directly.
+
+For a matched interpreted control:
+
+```powershell
+$env:SR_DISABLE_NATIVE_MODULES = "mga_stage_st01"
+```
+
+Remove that variable for the native route. Three matched present-10,000 runs
+measured:
+
+| Metric | Interpreted STAGE01 | Native/hybrid STAGE01 |
+|---|---:|---:|
+| Median route wall time | `53,278 ms` | `18,786 ms` |
+| Interpreted instructions/run | `25,835,871` | `3,743,963` |
+| Interpreter calls/run | `28,883` | `16,400` |
+| Distinct fallback targets | `139` | `110` |
+| Median steady host present FPS | `163.30` | `179.92` |
+
+The two captured checkpoints are byte-identical between control and native
+runs. All native runs report zero unknown HLE, crash, watchdog, interpreter
+stop, permissive fallback, audio drop, or underrun, and each save fixture
+remains byte-identical.
 
 ### D3D12 PSO disk-cache safety
 

@@ -9,6 +9,7 @@ extern const SrDispatchTable mga_stage_init_dispatch_table;
 extern const SrDispatchTable mga_stage_title_dispatch_table;
 extern const SrDispatchTable mga_stage_prologue_dispatch_table;
 extern const SrDispatchTable mga_stage_st00_dispatch_table;
+extern const SrDispatchTable mga_stage_st01_dispatch_table;
 
 static const SrModulePolicyEntry s_mga_modules[] = {
     {
@@ -114,6 +115,14 @@ static const SrModulePolicyEntry s_mga_modules[] = {
         SR_MODULE_GUEST,
         0x09b43c00u,
         &mga_stage_st00_dispatch_table,
+    },
+    {
+        "disc0:/sce_lbn0x11e50_size0x2c138",
+        "mgp_stage",
+        "9dfc231f933ef0d508ad7763f74fb6d857581e66",
+        SR_MODULE_GUEST,
+        0x09b6c600u,
+        &mga_stage_st01_dispatch_table,
     },
 };
 

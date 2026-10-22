@@ -4,10 +4,6 @@ This document converts [FINDINGS.md](FINDINGS.md) into work for the upstream
 `psp-recomp` fork. Implementation status and dependencies are tracked in
 [TODO.md](TODO.md), primarily Phase 1 and Phase 3.
 
-The current published `kzl` tip is cleaned commit `40447fd`. The fork's
-`kzl` and `main` histories were force-pushed on 2026-10-22 to remove Copilot
-co-author trailers while preserving human authorship.
-
 Status values:
 
 - **Local** - implemented in this worktree but not yet upstreamed.
@@ -32,9 +28,10 @@ Status values:
 | P0 | VFPU7 packed conversions | MGA-F-010 | Fork commits `9683b44`, `96dd536` | `vi2uc`, `vi2c`, `vi2us`, and `vi2s` codegen semantics with executable vectors. |
 | P0 | Executable-relative resources | MGA-F-020 | Fork commit `e2dbc91` | VFPU tables and fonts work from any process working directory. |
 | P1 | Explicit module replacement policy | MGA-F-015 | Fork commit `245031c` + synthetic tests | Per-title policy selects guest, HLE, or reject by path/name/hash; decryption remains future work. |
-| P1 | Static recompilation of runtime modules | MGA-F-021, MGA-F-038 | Fork commit `3f7d48e` + synthetic/protected tests | Prefixed generated modules expose immutable tables activated/deactivated by exact module identity. |
+| P1 | Static recompilation of runtime modules | MGA-F-021, MGA-F-038, MGA-F-057 | Fork commits `3f7d48e`, `06e7010` + synthetic/protected tests | Prefixed generated modules expose immutable tables activated/deactivated by exact module identity. |
 | P1 | Explicit computed function entries | MGA-F-034 | Fork commit `3f7d48e` + protected MGA validation | Codegen accepts validated title-supplied entries that static analysis cannot discover. |
-| P1 | Live-code-verified overlay fallback | MGA-F-039, MGA-F-040 | Fork commit `3f7d48e` + protected tests | Functions changed by title-owned post-load linking fall back explicitly and retain module-qualified identity. |
+| P1 | Live-code-verified overlay fallback | MGA-F-039, MGA-F-040, MGA-F-057 | Fork commits `3f7d48e`, `06e7010` + protected tests | Recheck live code on every wrapper entry; accept runtime-JAL target changes, while genuinely changed functions fall back with module-qualified identity. |
+| P0 | Runtime-JAL-aware repeated verification | MGA-F-057 | Fork commit `06e7010` + codegen/protected tests | Never cache a successful live comparison across later guest patches; verify JAL opcode identity while dispatching its live target bits. |
 | P0 | Interpreter-only failed native entries | MGA-F-046 | Fork commit `3f7d48e` + synthetic/protected tests | Once live-code verification fails, interpreter re-entry must not bounce through the same generated wrapper; same-address replacement overlays remain independent. |
 | P1 | Continuous XAudio2 blocking-output queue | MGA-F-047 | Fork commit `3f7d48e` + protected route check | Blocking output retains real lead; device-only silence does not advance guest time, and load-gap resume prebuffers/fades instead of alternating bursts. |
 | P0 | PSP scratchpad mapping | MGA-F-048 | Fork commit `3f7d48e` + synthetic/protected tests | Native and interpreted accesses share the 16 KiB `0x00010000` scratchpad and its physical aliases. |
@@ -273,7 +270,7 @@ Do not upstream these as generic defaults:
 - `0x08804000` / `0x0880432c`;
 - the EBOOT path argument;
 - Metal Gear Acid's computed callback entry `0x08919f10`;
-- Metal Gear Acid's raw-LBN overlay paths, hashes, load bases, and 266-target
+- Metal Gear Acid's raw-LBN overlay paths, hashes, load bases, and 56-target
   front-end allowlist;
 - module base expectations;
 - frame-count smoke-test content; or

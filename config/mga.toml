@@ -97,3 +97,13 @@ base = 0x09b43c00
 sha1 = "7899000a805ae773838b6c11741e62af46d14338"
 runtime_jal = true
 verify_runtime_code = true
+
+[[native_module]]
+id = "stage_st01"
+file = "PSP_GAME/USRDIR/stage/st01/st01.prx"
+runtime_path = "disc0:/sce_lbn0x11e50_size0x2c138"
+prefix = "mga_stage_st01"
+base = 0x09b6c600
+sha1 = "9dfc231f933ef0d508ad7763f74fb6d857581e66"
+runtime_jal = true
+verify_runtime_code = true

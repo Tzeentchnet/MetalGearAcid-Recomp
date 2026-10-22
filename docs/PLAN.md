@@ -21,7 +21,8 @@ As of 2026-10-22:
 - software GE, XAudio2, VFPU tables, PGF fonts, and input initialize;
 - deterministic runs navigate the title menu and enter the new-game opening;
 - empty, removed, and existing-save memory-stick states are validated; and
-- KJFS, ZLIB, sound, init, title, and prologue have generated native tables;
+- KJFS, ZLIB, sound, init, title, prologue, st00, and st01 have generated
+  native tables;
 - post-load-patched overlay functions use a reviewed, module-qualified hybrid
   allowlist rather than whole-module interpretation; and
 - an opt-in window-title counter reports rolling FPS/frame time on every
@@ -30,8 +31,10 @@ As of 2026-10-22:
   and D3D12 passes the same functional front-end acceptance route; and
 - D3D12 scales 1x-8x pass the front-end gate, while 1x/2x/4x/8x also load the
   selected post-Forest STAGE01 route with low measured GPU cost; and
-- structured host/GPU/interpreter profiles identify `st01/0x09b6effc` as the
-  dominant remaining measured runtime hot spot; and
+- runtime-JAL-aware live verification keeps linker-adjusted calls native while
+  genuine code mismatches retain module-qualified fallback; and
+- native STAGE01 reduces matched route interpreter work by 85.51% with exact
+  frame parity; and
 - gameplay, card PMFs, save creation, broader D3D12 scaling/golden coverage,
   campaign performance, and full-game stability are not yet validated.
 
@@ -215,7 +218,7 @@ Delivered:
 - native init (636), title (997), and prologue (1,091) overlays;
 - live-code verification for title-owned post-load relocations, with only
   mutated functions falling back;
-- a reviewed exact allowlist of 266 module-qualified overlay targets;
+- a reviewed exact allowlist of 56 module-qualified overlay targets;
 - same-base init/title/prologue activation coverage; and
 - restored one-million-instruction fallback cap plus before/after wall, CPU,
   and real-time pacing benchmarks.
@@ -310,7 +313,8 @@ front-end remains pixel-exact while improving from 39.22 to 46.35 FPS, and the
 dedicated D3D12 preset passes the deterministic title/menu/prologue route at
 1x with 162.55 FPS host presentation throughput. All configured scales 1x-8x
 now pass that functional route; 1x/2x/4x/8x load STAGE01, and GPU timestamp
-work remains at or below 2.06 ms on the measured routes. Native STAGE01,
+work remains at or below 2.06 ms on the measured routes. Native STAGE01 now
+removes 85.51% of the matched route's interpreted instructions.
 PSP-quantized hardware sampling, movies, broader gameplay/audio
 synchronization, and soak coverage remain.
 

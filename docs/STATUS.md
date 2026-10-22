@@ -26,10 +26,11 @@ Ready and blocked work is tracked in [TODO.md](TODO.md).
   PMFs, save creation, and the full campaign are not yet validated. Verified
   completion and post-Forest ULUS-10006 fixtures provide direct gameplay
   routes without replaying the scripted opening.
-- KJFS, ZLIB, sound, init, title, and prologue activate generated native
-  dispatch tables. The first mission overlay, st00, adds another 1,000 native
-  entries. Functions changed by the game's post-load overlay linker fall back
-  with module-qualified identity; unchanged functions remain native.
+- KJFS, ZLIB, sound, init, title, prologue, st00, and st01 activate generated
+  native dispatch tables. STAGE01 adds 1,351 generated entries. Functions
+  genuinely changed by the game's post-load overlay linker fall back with
+  module-qualified identity; runtime-JAL target changes remain native and
+  dispatch through the live guest word.
 - Native conversion reduced the matched present-600 wall/CPU benchmark by
   about 45%. Pixel-exact software-renderer optimizations raise the measured
   menu/prologue route from 39.2 to 46.4 FPS, while the accepted D3D12 route
@@ -44,14 +45,15 @@ Ready and blocked work is tracked in [TODO.md](TODO.md).
   transition.
 - PSP scratchpad support and a bounded, scheduler-aware interpreter carry the
   deterministic route into st00 through present 30,000.
-- Structured host/GPU/interpreter profiles identify native STAGE01 conversion
-  as the highest-confidence performance work: one entry accounts for 81.15%
-  of the measured post-Forest interpreted instructions.
+- Native STAGE01 reduces the matched post-Forest route's interpreted
+  instructions by 85.51% and median wall time by 64.74%, with byte-identical
+  checkpoints and unchanged save fixtures.
 
 The next gameplay milestone remains identifying the dark briefing's intended
 advance control and completing a playable, savable new-game first-mission
 route. Feature-class D3D12 goldens, movies, full-stage pacing, campaign
-validation, and long soaks also remain.
+validation, and long soaks also remain. The next ranked renderer experiment
+is PSP-quantized D3D12 texture sampling.
 
 ## History and attribution
 
@@ -60,7 +62,7 @@ On 2026-10-22, the parent `master` history and the runtime fork's `kzl` and
 preserving the human author and committer identities. The cleaned runtime tips
 are:
 
-- runtime `kzl`: `40447fd`; and
+- runtime `kzl`: `06e7010`; and
 - runtime `main`: `2a86b1f`.
 
 The current parent tip is always `origin/master`.

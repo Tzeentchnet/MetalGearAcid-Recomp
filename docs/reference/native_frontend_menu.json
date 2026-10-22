@@ -2,7 +2,7 @@
   "fallback_check": {
     "allowlist": "mga_frontend_fallbacks.toml",
     "mode": "exact",
-    "targets": 266
+    "targets": 56
   },
   "frames": {
     "3000": {
@@ -55,19 +55,19 @@
       "latency_ms": 46.44,
       "sample_rate_hz": 44100,
       "shutdown": {
-        "clock_drift_ms": -15310.38,
+        "clock_drift_ms": -45.15,
         "device_buffers_max": 8,
-        "device_buffers_min": 0,
+        "device_buffers_min": 6,
         "dropped": 0,
-        "max_guest_queue": 2560,
-        "played_frames": 344832,
-        "played_ms": 7819.32,
-        "resynced": 660160,
-        "silent_blocks": 40,
-        "underruns": 150
+        "max_guest_queue": 8192,
+        "played_frames": 350720,
+        "played_ms": 7952.83,
+        "resynced": 25984,
+        "silent_blocks": 0,
+        "underruns": 0
       }
     },
-    "dispatch_misses": 266,
+    "dispatch_misses": 56,
     "failures": {
       "host_crashes": 0,
       "interpreter_stops": 0,

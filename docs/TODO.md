@@ -80,8 +80,9 @@ The next ready P0 work is:
     `e2dbc91`; codegen/import/VFPU7 work committed as `9683b44`; the parent
     submodule was subsequently advanced to tested fidelity commits `245031c`
     and `96dd536`, then to native-overlay/audio/stability commit `3f7d48e` and
-    renderer/profiling diagnostics commit `40447fd`. The parent is pinned to
-    `40447fd`. The fork branch is published at
+    renderer/profiling diagnostics commit `40447fd`, then live-overlay
+    verification commit `06e7010`. The parent is pinned to `06e7010`. The
+    fork branch is published at
     `Tzeentchnet/psp-recomp`; the parent is published privately at
     `Tzeentchnet/MetalGearAcid-Recomp`.
 - [x] **T-1.2 P0** Add synthetic runtime PRX loader tests.
@@ -233,6 +234,9 @@ The next ready P0 work is:
     3240, and 3360. All used XAudio2, dropped zero blocks, and reported zero
     unimplemented HLEs, crashes, watchdogs, interpreter stops, or permissive
     fallbacks.
+  - Revalidated 2026-10-22: runtime-JAL-aware live verification reduces the
+    exact set to 56 targets while preserving all four checkpoint images and
+    the zero-failure/audio gates across three runs.
 
 ## Phase 3 - Native service modules and overlays
 
@@ -282,11 +286,15 @@ The next ready P0 work is:
   targets.
   - Done 2026-10-21: module-qualified v2 logs record 266 route targets: 36
     init, 77 title, and 153 prologue.
+  - Updated 2026-10-22: safely accepting linker-adjusted runtime JAL targets
+    reduces the current set to 56: 6 init, 13 title, and 37 prologue.
 - [x] **T-3.11 P1** Set a reviewed release fallback allowlist and fail on new
   targets.
   - Done 2026-10-21: `config/mga_frontend_fallbacks.toml` is checked exactly
     by `fallback_report.py` and `frontend_acceptance.py`; three consecutive
     runs passed with no missing or unexpected target.
+  - Updated 2026-10-22: regenerated the exact allowlist from three identical
+    56-target runs after live-verifier hardening.
 - [x] **T-3.12 P1** Benchmark boot time, host CPU, frame pacing, and dispatch
   misses before and after conversion.
   - Done 2026-10-21: matched present-600 runs improved from
@@ -414,6 +422,10 @@ The next ready P0 work is:
     `st01/0x09b6effc` represents 21,855,537 instructions, or 81.15% of the
     26,931,234 interpreted total. Whole-generated-code `/O2` was rejected at
     a 0.96% median gain.
+  - Progress 2026-10-22: native STAGE01 plus runtime-JAL-aware live
+    verification reduces the matched route from 25,835,871 to 3,743,963
+    interpreted instructions per run (85.51%) and the median route wall time
+    from 53,278 to 18,786 ms.
 - [ ] **T-6.9 P1** Run repeated stage-transition and save/load soak tests.
   - Progress 2026-10-21: completion and post-Forest fixtures load without
     mutation; the Forest route reaches two later overlays and exits normally.
@@ -432,13 +444,18 @@ The next ready P0 work is:
     specialization, and a per-primitive decoded-texel cache keep all software
     checkpoint hashes unchanged while raising measured pacing from 39.22 to
     46.35 FPS. D3D12 reaches 162.55 FPS host presentation throughput.
-- [ ] **T-6.13 P1** Generate, live-verify, and activate the native STAGE01
+- [x] **T-6.13 P1** Generate, live-verify, and activate the native STAGE01
   overlay.
   - Identity: `stage/st01/st01.prx`, SHA-1
     `9dfc231f933ef0d508ad7763f74fb6d857581e66`, runtime base `0x09b6c600`.
   - Acceptance: preserve the corrected route/captures and save fixture, retain
     explicit fallback identity for live-code mismatches, and materially reduce
     the 26.9-million-instruction interpreter total.
+  - Done 2026-10-22: 1,351/1,351 functions generate with zero stubs and bind
+    by exact path/hash/base. Three matched native runs preserve both captures
+    byte-for-byte and leave each save fixture unchanged. Interpreted
+    instructions fall by 85.51%, fallback targets from 139 to 110, and all
+    failure/audio gates remain clean.
 - [ ] **T-6.14 P2** Replace unsafe serialized D3D12 pipeline-library
   persistence with validated per-PSO caching or remove the experimental path.
   - `SR_D3D12_PSO_CACHE` reuse removed the validation GPU on the second

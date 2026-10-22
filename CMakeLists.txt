@@ -97,6 +97,8 @@ if(NOT MGA_RUNTIME_ONLY)
     mga_stage_prologue stage_prologue mga_stage_prologue)
   mga_add_native_module(
     mga_stage_st00 stage_st00 mga_stage_st00)
+  mga_add_native_module(
+    mga_stage_st01 stage_st01 mga_stage_st01)
 endif()
 
 set(RT "${PSP_RECOMP_DIR}/src/rt")
@@ -230,7 +232,8 @@ if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
 endif()
 target_link_libraries(mga_driver PRIVATE
   mga_game mga_kjfs mga_zlib mga_sound mga_stage_init mga_stage_title
-  mga_stage_prologue mga_stage_st00 mga_at3 mga_savedata_crypto
+  mga_stage_prologue mga_stage_st00 mga_stage_st01
+  mga_at3 mga_savedata_crypto
   mfplat mfuuid gdi32 user32 dinput8 dxguid ole32 winmm xaudio2 bcrypt)
 if(MGA_ENABLE_D3D12)
   target_compile_definitions(mga_driver PRIVATE SR_D3D12)

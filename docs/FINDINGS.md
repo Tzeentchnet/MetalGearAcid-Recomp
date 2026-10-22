@@ -775,9 +775,10 @@ words. Mutations include:
 
 These are title-owned links to main-module code/data, not the standard PRX
 relocations already applied by the generic loader. Generated overlays
-therefore verify each function's live guest instructions on first use.
-Unchanged functions execute natively; a function changed by the title linker
-enters explicit interpreter fallback against the patched guest image.
+therefore verify each function's live guest instructions on every wrapper
+entry. Runtime JALs require the same opcode and dispatch their live target;
+other changed instructions enter explicit interpreter fallback against the
+patched guest image. Unchanged functions execute natively.
 
 This preserves rendering and menu behavior without silently executing stale
 constants. A future title-specific offline linker could convert more of these
@@ -788,18 +789,20 @@ verified fallbacks to native code.
 An address-only miss log collapsed different overlay functions at the shared
 `0x09b43c00` base. Version 2 miss logs retain `(module prefix, address)`.
 
-The final deterministic route contains 266 reviewed targets:
+The final deterministic route contains 56 reviewed targets:
 
 | Module | Targets |
 |---|---:|
-| `mga_stage_init` | `36` |
-| `mga_stage_title` | `77` |
-| `mga_stage_prologue` | `153` |
+| `mga_stage_init` | `6` |
+| `mga_stage_title` | `13` |
+| `mga_stage_prologue` | `37` |
 
 `config/mga_frontend_fallbacks.toml` records exact module hashes and target
 sets. Both `fallback_report.py` and `frontend_acceptance.py` fail on a missing
-or unexpected target. Three consecutive runs matched all 266 entries and the
-four established frame hashes exactly.
+or unexpected target. Three consecutive runs matched all 56 entries and the
+four established frame hashes exactly. The earlier exact 266-target set was
+reduced by MGA-F-057's runtime-JAL-aware verification, not by relaxing the
+allowlist.
 
 ### MGA-F-041 - Native services materially reduce front-end cost
 
@@ -1072,7 +1075,8 @@ this workload.
 The exact front-end acceptance route passed at every integer D3D12 scale from
 1x through 8x with:
 
-- the same 266-target fallback set;
+- the then-current 266-target fallback set, subsequently reduced to 56 by
+  MGA-F-057 without changing checkpoint pixels;
 - all four semantic frame checks;
 - zero unknown HLE, permissive fallback, crash, watchdog, or interpreter stop;
 - zero audio drops or underruns; and
@@ -1155,8 +1159,9 @@ instructions. Its selected mission overlay is:
 Target `0x09b6effc` alone executes `21,855,537` instructions (`81.15%`);
 `0x09b7b218` adds `1,553,717` (`5.77%`). Generating and activating a verified
 native STAGE01 table is therefore the highest-confidence performance
-improvement. Generic compiler optimization is not a substitute for removing
-this interpreted workload.
+improvement. MGA-F-057 records its implementation and measured result.
+Generic compiler optimization is not a substitute for removing this
+interpreted workload.
 
 ### MGA-F-055 - Whole-program O2 is below the action threshold
 
@@ -1188,14 +1193,60 @@ ordinary opt-in from removing the device. Replacing pipeline-library
 serialization with individually validated cached-PSO blobs is preferable to
 silently accepting this driver-specific failure.
 
+### MGA-F-057 - Runtime-JAL-aware native STAGE01 removes the dominant hot spot
+
+`stage/st01/st01.prx` generates 1,351/1,351 functions with zero trapping
+stubs. The parent binds its exact raw path, SHA-1, runtime base, and immutable
+dispatch table through the existing module policy.
+
+The first direct integration exposed an important generic verifier issue.
+Overlay functions cached a successful live-code comparison forever, while the
+game can patch code after a function's first invocation. In addition, exact
+comparison rejected linker-adjusted JAL target bits even though
+`--runtime-jal` already reads and dispatches the live JAL word.
+
+Fork commit `06e7010` changes verified overlays to:
+
+1. recheck non-JAL live instructions on every wrapper entry until a mismatch
+   disables that wrapper;
+2. require runtime JALs to remain JAL opcodes while allowing their live target
+   bits to differ; and
+3. continue using the existing module-qualified interpreter-only suppression
+   for genuine code mismatches.
+
+This preserves safety while allowing the post-load linker changes that the
+generated code explicitly supports.
+
+Three matched present-10,000 post-Forest runs measured:
+
+| Metric | Interpreted STAGE01 | Native/hybrid STAGE01 | Change |
+|---|---:|---:|---:|
+| Median route wall time | `53,278 ms` | `18,786 ms` | `-64.74%` |
+| Interpreted instructions/run | `25,835,871` | `3,743,963` | `-85.51%` |
+| Interpreter calls/run | `28,883` | `16,400` | `-43.22%` |
+| Distinct fallback targets | `139` | `110` | `-20.86%` |
+| Median steady host present FPS | `163.30` | `179.92` | `+10.18%` |
+
+The interpreted control had high host wall-time variance (`19.2-84.4 s`);
+instruction counts and the native route were stable, with native wall times
+of `18.6-18.9 s`. Both captured checkpoints are byte-identical between
+control and native runs. Three native runs preserve the save fixture and
+report zero unknown HLE, crash, watchdog, interpreter stop, permissive
+fallback, audio drop, or underrun.
+
+The same verifier change reduces the exact deterministic front-end allowlist
+from 266 to 56 targets (6 init, 13 title, 37 prologue) with byte-identical
+software and D3D12 captures. Median front-end host presentation throughput
+remains within variance, moving from `157.83` to `159.50` FPS.
+
 ## Ranked improvement opportunities
 
 | Rank | Priority | Opportunity | Evidence | Confidence | Disposition |
 |---:|---|---|---|---:|---|
-| 1 | P1 | Generate, live-verify, and activate native `st01` | One target is 81.15% of 26.9M interpreted Forest-route instructions | 10/10 | Next implementation |
-| 2 | P1 | Implement a PSP-quantized D3D12 sampler and feature-class goldens | Textured frames diverge; direct blend, legacy shader, and final presentation are excluded | 8/10 | Focused graphics experiment |
-| 3 | P1 | Replace serialized pipeline libraries with safe per-PSO persistence | Reusing the current disk cache removes the D3D12 device | 10/10 | Keep gated until redesigned |
-| 4 | P1 | Continue CMake/CTest integration for existing graphics/runtime tests | Relevant tests existed but were not reachable from the parent CTest surface | 9/10 | Incremental maintenance |
-| 5 | P2 | Convert the two dominant front-end fallback entries if they remain hot in gameplay | They represent about 56% of front-end interpreted instructions | 9/10 | After `st01` |
+| Done | P1 | Generate, live-verify, and activate native `st01` | 85.51% fewer interpreted instructions with exact frame parity | 10/10 | Completed in MGA-F-057 |
+| 1 | P1 | Implement a PSP-quantized D3D12 sampler and feature-class goldens | Textured frames diverge; direct blend, legacy shader, and final presentation are excluded | 8/10 | Focused graphics experiment |
+| 2 | P1 | Replace serialized pipeline libraries with safe per-PSO persistence | Reusing the current disk cache removes the D3D12 device | 10/10 | Keep gated until redesigned |
+| 3 | P1 | Continue CMake/CTest integration for existing graphics/runtime tests | Relevant tests existed but were not reachable from the parent CTest surface | 9/10 | Incremental maintenance |
+| 4 | P2 | Profile the remaining front-end and STAGE01 fallback entries | The revised exact sets contain 56 and 110 targets respectively | 9/10 | Re-rank after broader gameplay |
 | - | Reject | Switch all generated code to `/O2` | 0.96% median gain, below variance/action threshold | 9/10 | Keep `/O1` |
 | - | Defer | Tune VRS for the current routes | No measurable throughput or capture difference | 9/10 | Revisit on heavier scenes |
