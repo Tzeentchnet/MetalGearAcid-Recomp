@@ -1239,12 +1239,56 @@ from 266 to 56 targets (6 init, 13 title, 37 prologue) with byte-identical
 software and D3D12 captures. Median front-end host presentation throughput
 remains within variance, moving from `157.83` to `159.50` FPS.
 
+### MGA-F-058 - GDI and Vulkan pass the deterministic front end
+
+The parent now exposes a dedicated `clang-cl-vulkan` preset using the
+runtime's existing SDL3/Vulkan backend. Three renderer configurations completed
+the exact present-4,200 route with the reviewed 56-target fallback set, zero
+unknown HLE/crash/watchdog/interpreter stop/permissive fallback, and zero audio
+drops or underruns:
+
+| Configuration | GE renderer | Presenter | Result |
+|---|---|---|---|
+| `clang-cl`, `SR_GPU=sw`, `SR_VIDEO=gdi` | Software | Win32 GDI | Pass |
+| `clang-cl-vulkan`, `SR_GPU=sw` | Software | SDL3/Vulkan | Pass |
+| `clang-cl-vulkan`, `SR_GPU=vk` | Vulkan | SDL3/Vulkan | Pass |
+
+The Vulkan presenter with software GE produces all four captures
+byte-identically to GDI, isolating presentation/window behavior from
+rasterization.
+
+The full Vulkan GE backend is functionally correct on the route but is not
+pixel-identical to the software oracle:
+
+| Checkpoint class | Different pixels | Pixels above delta 8 | Maximum delta |
+|---|---:|---:|---:|
+| Three title frames | `24.25-24.63%` | `5.81-5.88%` | `17` |
+| Title fade | `11.18%` | `0.42%` | `9` |
+
+These differences are smaller than the measured D3D12 title distribution but
+still require feature-class review before Vulkan can share a release golden
+tolerance.
+
+One diagnostic run per configuration measured:
+
+| Configuration | Host present FPS | p95 interval | Backend average |
+|---|---:|---:|---:|
+| GDI + software GE | `114.26` | `50.70 ms` | `0.28 ms` |
+| Vulkan presenter + software GE | `112.84` | `50.60 ms` | `0.39 ms` |
+| Vulkan GE | `158.25` | `21.12 ms` | `0.25 ms` |
+
+The software-renderer configurations remain CPU-raster bound, so replacing
+GDI presentation alone does not improve throughput. Vulkan GE submitted
+1,240,103 triangles and 3,314 sprites across 21,278 submissions, with 3,683
+GPU-owned and five CPU presentations. These single-run timing values are
+diagnostic rather than release thresholds.
+
 ## Ranked improvement opportunities
 
 | Rank | Priority | Opportunity | Evidence | Confidence | Disposition |
 |---:|---|---|---|---:|---|
 | Done | P1 | Generate, live-verify, and activate native `st01` | 85.51% fewer interpreted instructions with exact frame parity | 10/10 | Completed in MGA-F-057 |
-| 1 | P1 | Implement a PSP-quantized D3D12 sampler and feature-class goldens | Textured frames diverge; direct blend, legacy shader, and final presentation are excluded | 8/10 | Focused graphics experiment |
+| 1 | P1 | Implement PSP-quantized hardware sampling and feature-class D3D12/Vulkan goldens | Both GPU renderers diverge on textured frames while software output is presenter-independent | 9/10 | Focused graphics experiment |
 | 2 | P1 | Replace serialized pipeline libraries with safe per-PSO persistence | Reusing the current disk cache removes the D3D12 device | 10/10 | Keep gated until redesigned |
 | 3 | P1 | Continue CMake/CTest integration for existing graphics/runtime tests | Relevant tests existed but were not reachable from the parent CTest surface | 9/10 | Incremental maintenance |
 | 4 | P2 | Profile the remaining front-end and STAGE01 fallback entries | The revised exact sets contain 56 and 110 targets respectively | 9/10 | Re-rank after broader gameplay |

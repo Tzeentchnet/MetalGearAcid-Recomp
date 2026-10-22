@@ -37,6 +37,10 @@ Ready and blocked work is tracked in [TODO.md](TODO.md).
   reaches about 162.6 FPS host presentation throughput on the validation PC.
 - Every D3D12 scale from 1x through 8x passes the front-end gate, and
   1x/2x/4x/8x load the selected post-Forest STAGE01 route.
+- The Win32 GDI baseline, Vulkan presenter with software GE, and full Vulkan
+  GE backend all pass the deterministic front-end functional/audio/fallback
+  gate. The Vulkan presenter preserves software captures exactly; Vulkan GE
+  retains measured raster color deltas that still need feature-class review.
 - Failed live-code wrappers remain in the interpreter, eliminating the
   post-prologue host stack overflow; the 50,000-presentation regression route
   exits cleanly.
@@ -51,9 +55,9 @@ Ready and blocked work is tracked in [TODO.md](TODO.md).
 
 The next gameplay milestone remains identifying the dark briefing's intended
 advance control and completing a playable, savable new-game first-mission
-route. Feature-class D3D12 goldens, movies, full-stage pacing, campaign
+route. Feature-class D3D12/Vulkan goldens, movies, full-stage pacing, campaign
 validation, and long soaks also remain. The next ranked renderer experiment
-is PSP-quantized D3D12 texture sampling.
+is PSP-quantized D3D12/Vulkan texture sampling.
 
 ## History and attribution
 

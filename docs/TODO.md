@@ -377,6 +377,10 @@ The next ready P0 work is:
     pass semantic metrics. They are not pixel-identical: title frames have
     maximum channel deltas of 18-25 with about 13.6% of pixels above delta 8;
     the transition has maximum delta 9.
+  - Progress 2026-10-22: Vulkan GE passes the same semantic gates. Its title
+    frames have maximum delta 17 with 5.81-5.88% of pixels above delta 8; the
+    fade has maximum delta 9 and 0.42% above delta 8. Feature-class tolerance
+    work now covers both hardware renderers.
 - [x] **T-6.4 P1** Validate supported internal resolutions and presentation
   layouts.
   - Done 2026-10-22: every D3D12 scale from 1x through 8x passes the exact
@@ -384,6 +388,8 @@ The next ready P0 work is:
     4x, and 8x. Full-resolution capture, subpixel/box-filter analysis, VRS
     on/off comparisons, and native/letterbox/portrait layout tests are
     recorded in MGA-F-051 and MGA-F-052.
+  - Done 2026-10-22: the GDI presenter, Vulkan presenter with software GE, and
+    full Vulkan GE path also pass the exact front-end functional gate.
 - [x] **T-6.5 P1** Resolve or document GE commands `0xf0-0xf9`.
   - Done 2026-10-21: MGA-F-022 classifies the range as immediate-vertex
     state; zero initialization is supported and nonzero VAP submission fails
@@ -398,6 +404,9 @@ The next ready P0 work is:
     Three-run front-end and STAGE01 matrices cover 1x, 2x, 4x, and 8x; GPU
     work remains at or below 2.06 ms on the measured routes. Movies and
     full-stage loading/steady-state pacing remain.
+  - Progress 2026-10-22: one matched route measured 114.26 host presents/s on
+    GDI/software GE, 112.84 on Vulkan/software GE, and 158.25 on Vulkan GE.
+    These single runs are diagnostic, not release thresholds.
 - [ ] **T-6.7 P1** Validate XAudio2 latency, SAS/ATRAC behavior, underruns, and
   movie synchronization.
   - Progress 2026-10-21: blocking output retains three guest buffers or two
@@ -461,6 +470,11 @@ The next ready P0 work is:
   - `SR_D3D12_PSO_CACHE` reuse removed the validation GPU on the second
     process. Normal in-memory async PSOs remain active; disk reuse now requires
     `SR_D3D12_UNSAFE_PSO_CACHE=1`.
+- [x] **T-6.15 P1** Add and validate a parent Vulkan build.
+  - Done 2026-10-22: added `clang-cl-vulkan` with explicit SDL3/Vulkan
+    dependencies. Vulkan/software GE matches all GDI captures byte-for-byte;
+    full Vulkan GE passes frame semantics, input, audio, module, and fallback
+    gates on an RTX 5070. Vulkan-preset CTest passes 7/7.
 
 ## Phase 7 - CI and source release
 
@@ -469,7 +483,8 @@ The next ready P0 work is:
   - Progress 2026-10-22: parent CTest now exposes graphics-configuration and
     D3D12 vertex/state/layout tests in addition to the existing runtime set;
     structured-performance, interpreter-profile, and scaling-capture parent
-    tools have unit coverage. CI wiring remains.
+    tools have unit coverage. The Vulkan preset passes the seven generic
+    CTest targets. CI wiring remains.
 - [ ] **T-7.2 P0** Add protected CI for verified extraction, codegen, full
   native build, trace checks, and frame metrics.
 - [ ] **T-7.3 P0** Run a clean recursive clone/build/run from a separate path.

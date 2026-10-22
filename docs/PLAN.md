@@ -31,6 +31,8 @@ As of 2026-10-22:
   and D3D12 passes the same functional front-end acceptance route; and
 - D3D12 scales 1x-8x pass the front-end gate, while 1x/2x/4x/8x also load the
   selected post-Forest STAGE01 route with low measured GPU cost; and
+- GDI, Vulkan presentation with software GE, and full Vulkan GE pass the
+  deterministic front-end gate; and
 - runtime-JAL-aware live verification keeps linker-adjusted calls native while
   genuine code mismatches retain module-qualified fallback; and
 - native STAGE01 reduces matched route interpreter work by 85.51% with exact
@@ -315,8 +317,10 @@ dedicated D3D12 preset passes the deterministic title/menu/prologue route at
 now pass that functional route; 1x/2x/4x/8x load STAGE01, and GPU timestamp
 work remains at or below 2.06 ms on the measured routes. Native STAGE01 now
 removes 85.51% of the matched route's interpreted instructions.
-PSP-quantized hardware sampling, movies, broader gameplay/audio
-synchronization, and soak coverage remain.
+GDI and both Vulkan modes pass the deterministic front end; Vulkan GE remains
+within functional metrics but not the software pixel oracle. PSP-quantized
+hardware sampling, movies, broader gameplay/audio synchronization, Vulkan
+feature-class tolerance, and soak coverage remain.
 
 Work:
 

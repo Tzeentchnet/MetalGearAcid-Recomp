@@ -43,7 +43,8 @@ The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
 - CMake 3.25 or newer and Ninja
 - Visual Studio 2022 Build Tools with clang-cl, MSVC libraries, and a Windows
   SDK
-- SDL3 only when enabling the optional D3D12 renderer
+- SDL3 when enabling the optional D3D12 or Vulkan renderer
+- Vulkan SDK when enabling the optional Vulkan renderer
 
 ## Set up
 
@@ -87,6 +88,19 @@ cmake --build --preset clang-cl-d3d12 --target mga_driver
 Run `out\build\clang-cl-d3d12\mga.exe` with `SR_GPU=d3d12`. Keep the
 `clang-cl` software build for pixel-exact reference captures.
 
+For the Vulkan GE renderer, install the Vulkan SDK and configure its dedicated
+preset with the same SDL3 package:
+
+```powershell
+cmake --preset clang-cl-vulkan `
+  -DSDL3_DIR="C:\path\to\SDL3\cmake"
+cmake --build --preset clang-cl-vulkan --target mga_driver
+```
+
+Run `out\build\clang-cl-vulkan\mga.exe` with `SR_GPU=vk`. To use the Vulkan
+window/presenter with the pixel-exact software GE instead, set `SR_GPU=sw` in
+that build. The Vulkan build requires a working Vulkan 1.1-capable driver.
+
 Run it against the same verified disc:
 
 ```powershell
@@ -95,6 +109,9 @@ $env:SR_FPS_COUNTER = "1"
 out\build\clang-cl\mga.exe --boot `
   build\mga\gen\mga_image.bin 08804000 0880432c none --gui
 ```
+
+The baseline build uses the Win32 GDI presenter. Select it explicitly with
+`SR_GPU=sw` and `SR_VIDEO=gdi`.
 
 For a local Windows checkout, double-click `Launch Metal Gear Acid.bat`.
 The launcher prefers the D3D12 build, falls back to the software build, opens

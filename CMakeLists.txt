@@ -7,17 +7,24 @@ set(PSP_RECOMP_DIR "${CMAKE_SOURCE_DIR}/external/psp-recomp" CACHE PATH
     "PSP recompiler/runtime fork")
 
 option(MGA_ENABLE_D3D12 "Build the SDL3/D3D12 renderer" OFF)
+option(MGA_ENABLE_VULKAN "Build the SDL3/Vulkan renderer" OFF)
 option(MGA_RUNTIME_ONLY "Compile the runtime without generated game code" OFF)
 option(MGA_ENABLE_INSTRUCTION_TRACE "Keep instruction trace hooks" OFF)
 
-if(MGA_RUNTIME_ONLY AND MGA_ENABLE_D3D12)
+if(MGA_ENABLE_D3D12 AND MGA_ENABLE_VULKAN)
+  message(FATAL_ERROR "Select only one SDL3 renderer")
+endif()
+if(MGA_RUNTIME_ONLY AND (MGA_ENABLE_D3D12 OR MGA_ENABLE_VULKAN))
   message(FATAL_ERROR "MGA_RUNTIME_ONLY does not include the SDL3 backend")
 endif()
-if(MGA_ENABLE_D3D12)
+if(MGA_ENABLE_D3D12 OR MGA_ENABLE_VULKAN)
   if(NOT WIN32)
-    message(FATAL_ERROR "MGA_ENABLE_D3D12 requires Windows")
+    message(FATAL_ERROR "The SDL3 renderer presets require Windows")
   endif()
   find_package(SDL3 CONFIG REQUIRED COMPONENTS SDL3-shared)
+endif()
+if(MGA_ENABLE_VULKAN)
+  find_package(Vulkan REQUIRED)
 endif()
 if(NOT MGA_RUNTIME_ONLY AND CMAKE_C_COMPILER_ID STREQUAL "MSVC")
   message(FATAL_ERROR "Generated GNU C requires clang-cl, not MSVC cl")
@@ -188,6 +195,11 @@ if(MGA_ENABLE_D3D12)
     ${RT}/gpu_d3d12/texture_key.cpp
     ${RT}/gpu_d3d12/vertex.cpp)
 endif()
+if(MGA_ENABLE_VULKAN)
+  list(APPEND MGA_RUNTIME_SRCS
+    ${RT}/gpu_sdl3vk/sdl3vk.c
+    ${RT}/gpu_sdl3vk/ge_gpu.c)
+endif()
 
 if(MGA_RUNTIME_ONLY)
   add_library(mga_runtime_compile STATIC ${MGA_RUNTIME_SRCS})
@@ -238,6 +250,12 @@ target_link_libraries(mga_driver PRIVATE
 if(MGA_ENABLE_D3D12)
   target_compile_definitions(mga_driver PRIVATE SR_D3D12)
   target_link_libraries(mga_driver PRIVATE SDL3::SDL3 d3d12 dxgi)
+endif()
+if(MGA_ENABLE_VULKAN)
+  target_compile_definitions(mga_driver PRIVATE SR_SDL3VK)
+  target_link_libraries(mga_driver PRIVATE SDL3::SDL3 Vulkan::Vulkan)
+endif()
+if(MGA_ENABLE_D3D12 OR MGA_ENABLE_VULKAN)
   add_custom_command(TARGET mga_driver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             $<TARGET_FILE:SDL3::SDL3-shared>

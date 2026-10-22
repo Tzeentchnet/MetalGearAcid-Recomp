@@ -120,6 +120,37 @@ $env:SR_D3D12_SCALE = "1"
 $env:SR_FPS_COUNTER = "1"
 ```
 
+Build the optional Vulkan path separately. The Visual Studio developer shell
+must see an installed Vulkan SDK (`VULKAN_SDK`) and the same SDL3 package:
+
+```powershell
+cmake --preset clang-cl-vulkan `
+  -DSDL3_DIR="C:\path\to\SDL3\cmake"
+cmake --build --preset clang-cl-vulkan `
+  --target mga_driver --parallel
+```
+
+Renderer selection:
+
+```powershell
+# Pixel-exact software GE through Win32 GDI.
+$env:SR_GPU = "sw"
+$env:SR_VIDEO = "gdi"
+out\build\clang-cl\mga.exe --boot `
+  build\mga\gen\mga_image.bin 08804000 0880432c none --gui
+
+# Software GE through the SDL3/Vulkan presenter.
+$env:SR_GPU = "sw"
+Remove-Item Env:SR_VIDEO -ErrorAction SilentlyContinue
+out\build\clang-cl-vulkan\mga.exe --boot `
+  build\mga\gen\mga_image.bin 08804000 0880432c none --gui
+
+# Full Vulkan GE renderer and presenter.
+$env:SR_GPU = "vk"
+out\build\clang-cl-vulkan\mga.exe --boot `
+  build\mga\gen\mga_image.bin 08804000 0880432c none --gui
+```
+
 For unattended runs from a fresh output directory, set
 `SR_GRAPHICS_CONFIG=0` and `SR_INPUT_CONFIG=0` to suppress first-run dialogs.
 
@@ -671,6 +702,52 @@ Measured three-run front-end results on the validation PC:
 All scales 1x-8x pass the front-end functional gate. The post-Forest route
 passes at 1x, 2x, 4x, and 8x.
 
+### GDI and Vulkan front-end acceptance
+
+Run the section-11 route once for each renderer selection above. All three
+must retain the exact 56-target allowlist and pass frame semantics, input,
+audio, module, and failure checks.
+
+Compare presenter parity:
+
+```powershell
+python external\psp-recomp\tools\ppmdiff.py `
+  build\mga\renderer-gdi `
+  build\mga\renderer-vulkan-presenter `
+  --threshold 0 `
+  --max-threshold-pixels 0 `
+  --max-channel-delta 0
+```
+
+The software GE captures are byte-identical through GDI and Vulkan
+presentation. Full Vulkan GE is not pixel-identical; compare it to GDI with
+the diagnostic delta-8 report:
+
+```powershell
+python external\psp-recomp\tools\ppmdiff.py `
+  build\mga\renderer-gdi `
+  build\mga\renderer-vulkan-ge `
+  --threshold 8 `
+  --max-threshold-pixels 130560 `
+  --max-channel-delta 255 `
+  --json build\mga\renderer-vulkan-ge\gdi-diff.json
+```
+
+Measured title frames have `5.81-5.88%` of pixels above delta 8 and maximum
+delta 17; the fade has `0.42%` above delta 8 and maximum delta 9.
+
+One diagnostic run measured:
+
+| Configuration | Host present FPS | p95 interval |
+|---|---:|---:|
+| GDI + software GE | `114.26` | `50.70 ms` |
+| Vulkan presenter + software GE | `112.84` | `50.60 ms` |
+| Vulkan GE | `158.25` | `21.12 ms` |
+
+These single runs validate the paths but are not release performance
+thresholds. Vulkan GPU timestamp queries are not yet included in
+`SR_PERF_FILE`.
+
 ### Post-Forest/STAGE01 workload
 
 Clone the protected #8725 fixture, select `mga_load_save_probe.pad`, and use
@@ -873,10 +950,12 @@ Run both standalone native runtime tests in the fork with:
 make -C external\psp-recomp test-runtime
 ```
 
-Current combined D3D12-preset CTest result:
+Current combined CTest results:
 
 ```text
-8/8 tests passed
+software preset: 7/7 tests passed
+Vulkan preset:   7/7 tests passed
+D3D12 preset:    8/8 tests passed
 ```
 
 ## Useful diagnostics
