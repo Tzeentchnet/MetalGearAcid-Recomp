@@ -118,10 +118,16 @@ The baseline build uses the Win32 GDI presenter. Select it explicitly with
 `SR_GPU=sw` and `SR_VIDEO=gdi`.
 
 For a local Windows checkout, double-click `Launch Metal Gear Acid.bat`.
-The launcher prefers the D3D12 build, falls back to the software build, opens
-the Metal Gear Acid graphics and controller settings, and then starts the
-game. It uses `Metal Gear Acid (USA)\Metal Gear Acid (USA).iso` by default;
-set `PSP_ISO` first to use a supported disc image at another location.
+When multiple builds are available, the launcher prompts for D3D12
+(recommended), Vulkan, or the software/GDI reference renderer. If only one
+renderer build exists, it is selected automatically. Set
+`MGA_RENDERER=d3d12`, `MGA_RENDERER=vulkan`, or
+`MGA_RENDERER=software` before launching to skip the prompt.
+
+The launcher opens the Metal Gear Acid graphics and controller settings, then
+starts the selected executable with the matching renderer override. It uses
+`Metal Gear Acid (USA)\Metal Gear Acid (USA).iso` by default; set `PSP_ISO`
+first to use a supported disc image at another location.
 
 The first GUI run creates portable `graphics.ini` and `input.ini` beside the
 executable and opens controller setup. Metal Gear Acid exposes standard PSP
