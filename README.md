@@ -108,6 +108,28 @@ button bindings without the Killzone-specific twin-stick controls. The runtime
 uses its conservative one-million-instruction fallback cap; override it only
 for diagnostics with `SR_INTERP_MAX_STEPS`.
 
+### Using existing PSP saves
+
+Close the game, then copy the complete Metal Gear Acid save folder from the
+PSP Memory Stick's `PSP\SAVEDATA\` directory into:
+
+```text
+memstick\PSP\SAVEDATA\
+```
+
+Keep the save folder and all files inside it together. Supported USA saves use
+folder names beginning with `ULUS10006`; do not rename another region's save
+to that prefix. For example, a folder named `ULUS10006002` must end up at
+`memstick\PSP\SAVEDATA\ULUS10006002\`. It appears under **LOAD GAME**, not
+necessarily **CONTINUE**.
+
+The launcher uses the repository's `memstick\` directory by default. To keep
+saves elsewhere, set `SR_MEMSTICK` to an alternate Memory Stick root that
+contains `PSP\SAVEDATA\` before starting the launcher. Back up the original
+save before copying or testing it. See
+[Isolated memstick fixtures](docs/REPRODUCTION.md#7-isolated-memstick-fixtures)
+for verified copy and validation commands.
+
 `SR_FPS_COUNTER=1` updates the window title every 500 ms with rolling FPS and
 average frame time on GDI, Vulkan, and D3D12.
 
