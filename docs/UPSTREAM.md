@@ -18,41 +18,45 @@ Status values:
 
 | Priority | Work item | Findings | Status | Required upstream result |
 |---|---|---|---|---|
-| P0 | Import-map stubs outside `.sceStub.text` | MGA-F-011 | Fork commit `1225147` | Codegen treats every parsed import address as an import stub. |
-| P0 | Patch imports in the loaded static image | MGA-F-012 | Fork commits `51aa462`, `1225147` | Interpreted callbacks into static modules reach HLE instead of raw no-op stubs. |
-| P0 | Runtime PRX loader and module registry | MGA-F-006 through MGA-F-009 | Fork commit `51aa462` + synthetic tests | Load-by-path and load-by-fd, relocation, imports, exports, start, unload, and explicit failures. |
-| P0 | Interpreter syscall continuation | MGA-F-013 | Fork commit `51aa462` + synthetic tests | Runtime PRX syscalls execute HLE and resume with the original outer return target. |
-| P0 | Nested interpreter-to-native re-entry | MGA-F-034 | Fork commit `2bf37a0` + synthetic tests | An interpreted call chain hands targets in the active generated table back to native code, then resumes at the guest `$ra`. |
-| P0 | Interpreted VFPU continuation | MGA-F-034 | Fork commit `2bf37a0` + synthetic tests | Fallback reuses tested VFPU compute semantics and implements COP2 plus scalar/quad memory forms. |
-| P0 | Per-thread GP | MGA-F-014 | Fork commit `51aa462` | Module-created threads run with their module GP. |
-| P0 | VFPU7 packed conversions | MGA-F-010 | Fork commits `1225147`, `7980eb7` | `vi2uc`, `vi2c`, `vi2us`, and `vi2s` codegen semantics with executable vectors. |
-| P0 | Executable-relative resources | MGA-F-020 | Fork commit `51aa462` | VFPU tables and fonts work from any process working directory. |
-| P1 | Explicit module replacement policy | MGA-F-015 | Fork commit `abad642` + synthetic tests | Per-title policy selects guest, HLE, or reject by path/name/hash; decryption remains future work. |
-| P1 | Static recompilation of runtime modules | MGA-F-021, MGA-F-038 | Fork commit `2bf37a0` + synthetic/protected tests | Prefixed generated modules expose immutable tables activated/deactivated by exact module identity. |
-| P1 | Explicit computed function entries | MGA-F-034 | Fork commit `2bf37a0` + protected MGA validation | Codegen accepts validated title-supplied entries that static analysis cannot discover. |
-| P1 | Live-code-verified overlay fallback | MGA-F-039, MGA-F-040 | Fork commit `2bf37a0` + protected tests | Functions changed by title-owned post-load linking fall back explicitly and retain module-qualified identity. |
-| P0 | Interpreter-only failed native entries | MGA-F-046 | Fork commit `2bf37a0` + synthetic/protected tests | Once live-code verification fails, interpreter re-entry must not bounce through the same generated wrapper; same-address replacement overlays remain independent. |
-| P1 | Continuous XAudio2 blocking-output queue | MGA-F-047 | Fork commit `2bf37a0` + protected route check | Blocking output retains real lead; device-only silence does not advance guest time, and load-gap resume prebuffers/fades instead of alternating bursts. |
-| P0 | PSP scratchpad mapping | MGA-F-048 | Fork commit `2bf37a0` + synthetic/protected tests | Native and interpreted accesses share the 16 KiB `0x00010000` scratchpad and its physical aliases. |
-| P0 | Bounded scheduler-aware interpreter handoff | MGA-F-049 | Fork commit `2bf37a0` + synthetic/protected tests | Long-lived hybrid loops cannot grow the host fiber stack without bound; deeper execution keeps scheduler progress and explicit semantic failures. |
-| P1 | Variable import binding | MGA-F-016 | Fork commit `abad642` explicit rejection | Bind supported variable imports in the future; current load-time rejection prevents silent misuse. |
-| P1 | Removable Memory Stick state | MGA-F-032 | Fork commit `2bf37a0` + synthetic tests | Initial inserted/removed device, FAT, callback, capacity, and write-protect behavior matches PPSSPP. |
-| P1 | UID-fidelity model | MGA-F-004, MGA-F-025 | Fork commit `abad642`; audited through first stage | Separate current entry UID from next UID and account for PSP file-node objects. |
-| P1 | Library-qualified import identity | MGA-F-031 | Fork commits `abad642`, `7980eb7` | Preserve `(library, NID)` through generated imports, runtime bindings, guest exports, and diagnostics. |
-| P1 | Callback-aware vblank HLE | MGA-F-018 | Fork commit `51aa462` | Register `sceDisplayWaitVblankStartCB` with callback-enabled waiting. |
-| P1 | Module unload/base reuse | MGA-F-007, MGA-F-026 | Fork commit `51aa462` + synthetic tests | Unload invalidates exports, frees memory, and allows deterministic overlay reuse. |
+| P0 | Import-map stubs outside `.sceStub.text` | MGA-F-011 | Fork commit `9683b44` | Codegen treats every parsed import address as an import stub. |
+| P0 | Patch imports in the loaded static image | MGA-F-012 | Fork commits `e2dbc91`, `9683b44` | Interpreted callbacks into static modules reach HLE instead of raw no-op stubs. |
+| P0 | Runtime PRX loader and module registry | MGA-F-006 through MGA-F-009 | Fork commit `e2dbc91` + synthetic tests | Load-by-path and load-by-fd, relocation, imports, exports, start, unload, and explicit failures. |
+| P0 | Interpreter syscall continuation | MGA-F-013 | Fork commit `e2dbc91` + synthetic tests | Runtime PRX syscalls execute HLE and resume with the original outer return target. |
+| P0 | Nested interpreter-to-native re-entry | MGA-F-034 | Fork commit `3f7d48e` + synthetic tests | An interpreted call chain hands targets in the active generated table back to native code, then resumes at the guest `$ra`. |
+| P0 | Interpreted VFPU continuation | MGA-F-034 | Fork commit `3f7d48e` + synthetic tests | Fallback reuses tested VFPU compute semantics and implements COP2 plus scalar/quad memory forms. |
+| P0 | Per-thread GP | MGA-F-014 | Fork commit `e2dbc91` | Module-created threads run with their module GP. |
+| P0 | VFPU7 packed conversions | MGA-F-010 | Fork commits `9683b44`, `96dd536` | `vi2uc`, `vi2c`, `vi2us`, and `vi2s` codegen semantics with executable vectors. |
+| P0 | Executable-relative resources | MGA-F-020 | Fork commit `e2dbc91` | VFPU tables and fonts work from any process working directory. |
+| P1 | Explicit module replacement policy | MGA-F-015 | Fork commit `245031c` + synthetic tests | Per-title policy selects guest, HLE, or reject by path/name/hash; decryption remains future work. |
+| P1 | Static recompilation of runtime modules | MGA-F-021, MGA-F-038 | Fork commit `3f7d48e` + synthetic/protected tests | Prefixed generated modules expose immutable tables activated/deactivated by exact module identity. |
+| P1 | Explicit computed function entries | MGA-F-034 | Fork commit `3f7d48e` + protected MGA validation | Codegen accepts validated title-supplied entries that static analysis cannot discover. |
+| P1 | Live-code-verified overlay fallback | MGA-F-039, MGA-F-040 | Fork commit `3f7d48e` + protected tests | Functions changed by title-owned post-load linking fall back explicitly and retain module-qualified identity. |
+| P0 | Interpreter-only failed native entries | MGA-F-046 | Fork commit `3f7d48e` + synthetic/protected tests | Once live-code verification fails, interpreter re-entry must not bounce through the same generated wrapper; same-address replacement overlays remain independent. |
+| P1 | Continuous XAudio2 blocking-output queue | MGA-F-047 | Fork commit `3f7d48e` + protected route check | Blocking output retains real lead; device-only silence does not advance guest time, and load-gap resume prebuffers/fades instead of alternating bursts. |
+| P0 | PSP scratchpad mapping | MGA-F-048 | Fork commit `3f7d48e` + synthetic/protected tests | Native and interpreted accesses share the 16 KiB `0x00010000` scratchpad and its physical aliases. |
+| P0 | Bounded scheduler-aware interpreter handoff | MGA-F-049 | Fork commit `3f7d48e` + synthetic/protected tests | Long-lived hybrid loops cannot grow the host fiber stack without bound; deeper execution keeps scheduler progress and explicit semantic failures. |
+| P1 | Variable import binding | MGA-F-016 | Fork commit `245031c` explicit rejection | Bind supported variable imports in the future; current load-time rejection prevents silent misuse. |
+| P1 | Removable Memory Stick state | MGA-F-032 | Fork commit `3f7d48e` + synthetic tests | Initial inserted/removed device, FAT, callback, capacity, and write-protect behavior matches PPSSPP. |
+| P1 | UID-fidelity model | MGA-F-004, MGA-F-025 | Fork commit `245031c`; audited through first stage | Separate current entry UID from next UID and account for PSP file-node objects. |
+| P1 | Library-qualified import identity | MGA-F-031 | Fork commits `245031c`, `96dd536` | Preserve `(library, NID)` through generated imports, runtime bindings, guest exports, and diagnostics. |
+| P1 | Callback-aware vblank HLE | MGA-F-018 | Fork commit `e2dbc91` | Register `sceDisplayWaitVblankStartCB` with callback-enabled waiting. |
+| P1 | Module unload/base reuse | MGA-F-007, MGA-F-026 | Fork commit `e2dbc91` + synthetic tests | Unload invalidates exports, frees memory, and allows deterministic overlay reuse. |
 | P1 | Interpreter budget policy | MGA-F-021 | Proposed | Per-module budgets and progress diagnostics replace one global cap. |
-| P2 | Generic diagnostic switches | MGA-F-024 through MGA-F-026 | Fork commit `51aa462` | UID, event, module, and watchdog-RAM logs are opt-in and title-neutral. |
+| P2 | Generic diagnostic switches | MGA-F-024 through MGA-F-026 | Fork commit `e2dbc91` | UID, event, module, and watchdog-RAM logs are opt-in and title-neutral. |
 | P2 | Multi-buffer capture | MGA-F-023 | Proposed | Capture displayed buffer and best render/content buffer with metadata. |
-| P2 | GE `0xf0-0xf9` classification | MGA-F-022 | Fork commit `abad642` | Store immediate-vertex state and explicitly report nonzero unsupported VAP draws. |
-| P2 | Gate all title patches | MGA-F-019 | Fork commit `51aa462` | Killzone-specific data mutations require an explicit build flag. |
-| P2 | Shared dual-clock pad scripts | MGA-F-027 | Fork commit `abad642` + parent profiles | Header-only scripts are neutral and v3 profiles drive PPSSPP vblanks plus native presents. |
-| P2 | Capture-free presentation limit | MGA-F-030 | Fork commit `abad642` | `SR_EXIT_AFTER_PRESENT` logs the terminal present and exits cleanly without a game-derived capture. |
-| P2 | Presentation/input acceptance diagnostics | MGA-F-035, MGA-F-037 | Fork commit `2bf37a0` | Exact presentation captures plus scripted/live input-edge logs remain opt-in and title-neutral. |
-| P2 | Window-title FPS counter | MGA-F-042 | Fork commit `2bf37a0` + synthetic test | GDI, Vulkan, and D3D12 expose one opt-in rolling FPS/frame-time diagnostic. |
-| P1 | Exact software sampler/raster fast paths | MGA-F-043 | Fork commit `2bf37a0` + protected goldens | Degenerate bilinear weights, through-mode attributes, and decoded-texel reuse avoid work without changing output. |
-| P1 | D3D12 front-end performance path | MGA-F-044 | Fork commit `2bf37a0` + protected capture/route checks | A dedicated build preset and GPU readback capture support the accepted native-resolution route. |
-| P2 | Title-aware configuration UI | MGA-F-045 | Fork commit `2bf37a0` + process-level checks | First-run, explicit configuration, and native message dialogs consistently use `SR_GAME_TITLE`. |
+| P2 | GE `0xf0-0xf9` classification | MGA-F-022 | Fork commit `245031c` | Store immediate-vertex state and explicitly report nonzero unsupported VAP draws. |
+| P2 | Gate all title patches | MGA-F-019 | Fork commit `e2dbc91` | Killzone-specific data mutations require an explicit build flag. |
+| P2 | Shared dual-clock pad scripts | MGA-F-027 | Fork commit `245031c` + parent profiles | Header-only scripts are neutral and v3 profiles drive PPSSPP vblanks plus native presents. |
+| P2 | Capture-free presentation limit | MGA-F-030 | Fork commit `245031c` | `SR_EXIT_AFTER_PRESENT` logs the terminal present and exits cleanly without a game-derived capture. |
+| P2 | Presentation/input acceptance diagnostics | MGA-F-035, MGA-F-037 | Fork commit `3f7d48e` | Exact presentation captures plus scripted/live input-edge logs remain opt-in and title-neutral. |
+| P2 | Window-title FPS counter | MGA-F-042 | Fork commit `3f7d48e` + synthetic test | GDI, Vulkan, and D3D12 expose one opt-in rolling FPS/frame-time diagnostic. |
+| P1 | Exact software sampler/raster fast paths | MGA-F-043 | Fork commit `3f7d48e` + protected goldens | Degenerate bilinear weights, through-mode attributes, and decoded-texel reuse avoid work without changing output. |
+| P1 | D3D12 front-end performance path | MGA-F-044 | Fork commit `3f7d48e` + protected capture/route checks | A dedicated build preset and GPU readback capture support the accepted native-resolution route. |
+| P1 | Structured frame/GPU/interpreter profiles | MGA-F-051, MGA-F-054 | Fork commit `40447fd` + synthetic/protected tests | Opt-in CSV/TSV diagnostics expose percentiles, fenced GPU time, and per-target interpreter cost without changing release timing or the v2 fallback log. |
+| P1 | Full-resolution scaled capture | MGA-F-052 | Fork commit `40447fd` + D3D12 layout tests | Preserve the established logical capture by default and expose the actual internal render target for scale-aware analysis. |
+| P1 | PSP-quantized D3D12 texture sampling | MGA-F-053 | Proposed | Replace or supplement hardware floating-point filtering with the PSP/software renderer's 8-bit bilinear weights and truncation, proven by feature-class goldens. |
+| P1 | Safe D3D12 PSO persistence | MGA-F-056 | Fork commit `40447fd` safety gate; redesign proposed | Keep normal in-memory async PSOs, require explicit unsafe acknowledgement for serialized pipeline libraries, and move persistence to independently validated cached-PSO blobs. |
+| P2 | Title-aware configuration UI | MGA-F-045 | Fork commit `3f7d48e` + process-level checks | First-run, explicit configuration, and native message dialogs consistently use `SR_GAME_TITLE`. |
 | Config | MGA disc and boot contract | MGA-F-001 through MGA-F-005 | Game config | Keep hashes, argument, stack, UID seed, GE ID, and title outside generic defaults. |
 
 ## Recommended upstream decomposition

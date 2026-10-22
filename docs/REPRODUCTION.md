@@ -15,16 +15,18 @@ Set-Location MetalGearAcid-Recomp
 
 GitHub authentication is required for the private parent.
 
-The parent currently pins tested fork tip `2bf37a0`. The relevant sequence is:
+The parent currently pins tested fork tip `40447fd`. The relevant sequence is:
 
-- `51aa462` - runtime PRX modules and synthetic runtime tests;
-- `1225147` - runtime import patches and initial VFPU7 codegen;
-- `abad642` - UID/file fidelity, module policy, library dispatch, pad neutrality,
+- `e2dbc91` - runtime PRX modules and synthetic runtime tests;
+- `9683b44` - runtime import patches and initial VFPU7 codegen;
+- `245031c` - UID/file fidelity, module policy, library dispatch, pad neutrality,
   variable-import rejection, and GE immediate state; and
-- `7980eb7` - library-qualified generated imports and executable VFPU7 vectors;
-- `2bf37a0` - native overlay dispatch, live-code fallback, scratchpad memory,
+- `96dd536` - library-qualified generated imports and executable VFPU7 vectors;
+- `3f7d48e` - native overlay dispatch, live-code fallback, scratchpad memory,
   scheduler-aware interpreter continuation, renderer/FPS diagnostics,
   memory-stick state, and continuous XAudio2 buffering.
+- `40447fd` - structured CPU/GPU/interpreter profiles, full-resolution scaled
+  capture, PSO persistence safety, and clean bounded-run shutdown.
 
 ## 1. Extract the verified disc
 
@@ -251,6 +253,8 @@ Profiles:
 | `mga_neutral.pad` | Strict no-input baseline |
 | `mga_boot.pad` | Periodic START pulses for boot/logo/title advancement |
 | `mga_menu_probe.pad` | Boot pulses plus deterministic START/DOWN/UP/CIRCLE probes |
+| `mga_load_save_probe.pad` | Load #8725, select STAGE01 with UP, and confirm the delayed prompt |
+| `mga_st00_probe.pad` | Broad-input new-game route into the first mission overlay |
 
 The PPSSPP and native columns intentionally differ. PPSSPP reads vblank
 timing; native reads presentation timing. Header-only neutral scripts suppress
@@ -331,7 +335,7 @@ against the downloaded source directory.
 Current parent-tool test result:
 
 ```text
-Ran 21 tests
+Ran 28 tests
 OK
 ```
 
@@ -577,6 +581,121 @@ The measured title checkpoints have maximum channel delta 18-25 and about
 13.6% of pixels above delta 8. The fade checkpoint has maximum delta 9 and
 0.61% above delta 8.
 
+### Structured timing and interpreter profiles
+
+Keep the human-readable windows and write every sample to CSV:
+
+```powershell
+$env:SR_PERF_LOG = "1"
+$env:SR_PERF_FILE = "$run\performance.csv"
+$env:SR_PERF_START = "3300"
+$env:SR_PERF_WINDOW = "120"
+$env:SR_INTERP_PROFILE = "$run\interpreter.tsv"
+```
+
+The performance CSV includes frame interval, approximate frontend/backend
+time, the latest fenced D3D12 GPU timestamp, and whether the interval exceeded
+the default 16.67 ms budget. The interpreter TSV is separate from
+`SR_INTERP_MISS_LOG`; it records calls and guest instructions without changing
+the exact fallback allowlist format.
+
+Reduce one or more runs with:
+
+```powershell
+python tools\mga\perf_report.py `
+  build\mga\run-1\performance.csv `
+  build\mga\run-2\performance.csv `
+  build\mga\run-3\performance.csv `
+  --out build\mga\performance.json
+
+python tools\mga\interp_profile.py `
+  build\mga\run-1\interpreter.tsv `
+  build\mga\run-2\interpreter.tsv `
+  build\mga\run-3\interpreter.tsv `
+  --top 25 `
+  --out build\mga\interpreter.json
+```
+
+Use at least three equivalent runs. Report the median and spread, and treat a
+change as actionable only when it is at least 5% and exceeds run variance.
+Fast-forward may reach the workload, but profile windows must begin after
+real-time pacing resumes.
+
+### Internal-resolution validation
+
+The functional gate must pass at every supported scale:
+
+```powershell
+foreach ($scale in 1..8) {
+  $env:SR_D3D12_SCALE = "$scale"
+  # Run the exact section-11 route in a fresh output directory.
+}
+```
+
+The established 480x272 GPU capture remains unchanged by default. Capture the
+actual internal render target explicitly when validating scaling:
+
+```powershell
+$env:SR_D3D12_SCALE = "4"
+$env:SR_D3D12_CAPTURE_INTERNAL = "1"
+$env:SR_FBCAPTURE_PRESENTS = "3000"
+```
+
+Analyze all subpixel offsets and a box-filtered logical image:
+
+```powershell
+python tools\mga\scaling_capture.py `
+  build\mga\internal-4x\capture_present_3000.ppm `
+  --reference build\mga\software\capture_present_3000.ppm `
+  --threshold 8 `
+  --out build\mga\internal-4x\analysis.json
+```
+
+Do not use one point sample to approve or reject even scales. The old
+`scale / 2` sample exaggerates even-scale differences; full-resolution and
+box-filter evidence is required.
+
+Measured three-run front-end results on the validation PC:
+
+| Scale | Median host present FPS | Median p95 | Median GPU work |
+|---:|---:|---:|---:|
+| 1x | `157.83` | `23.50 ms` | `0.10 ms` |
+| 2x | `153.62` | `23.44 ms` | `0.18 ms` |
+| 4x | `158.45` | `22.72 ms` | `0.42 ms` |
+| 8x | `157.60` | `15.17 ms` | `1.75 ms` |
+
+All scales 1x-8x pass the front-end functional gate. The post-Forest route
+passes at 1x, 2x, 4x, and 8x.
+
+### Post-Forest/STAGE01 workload
+
+Clone the protected #8725 fixture, select `mga_load_save_probe.pad`, and use
+the standard inserted-card variables. The script:
+
+1. keeps LOAD GAME selected;
+2. loads the save and reaches the map;
+3. presses UP to select `Lobito Laboratory - Outside Gate`;
+4. confirms STAGE01; and
+5. confirms the delayed OK prompt.
+
+Acceptance requires:
+
+```text
+module loader: allocated disc0:/sce_lbn0x11e50_size0x2c138 at 09b6c600-09b8f800
+module loader: mgp_stage ... base=09b6c600 size=23200
+```
+
+Verify the disposable fixture after every run. The source template must never
+be used directly.
+
+### D3D12 PSO disk-cache safety
+
+Normal asynchronous in-memory PSO compilation is enabled. Serialized
+pipeline-library reuse removed the D3D12 device on the validation driver, so
+setting `SR_D3D12_PSO_CACHE` alone now logs a clear warning and does not create
+a cache. The additional `SR_D3D12_UNSAFE_PSO_CACHE=1` acknowledgement exists
+only for framework diagnostics; it is not an accepted gameplay setting.
+
 ## 12. Framework tests
 
 ### Python tests
@@ -662,18 +781,36 @@ ctest --test-dir out\build\clang-cl `
 
 The test verifies rolling FPS/frame-time output and timer-reset behavior.
 
-### Memory-stick state and input mappings
+### Memory-stick, graphics, and input configuration
 
 ```powershell
 cmake --build --preset clang-cl --target `
-  mga_memstick_state_tests mga_input_config_tests
+  mga_memstick_state_tests mga_graphics_config_tests mga_input_config_tests
 ctest --test-dir out\build\clang-cl `
-  -R "^mga_(memstick_state|input_config)$" --output-on-failure
+  -R "^mga_(memstick_state|graphics_config|input_config)$" `
+  --output-on-failure
 ```
 
 These public tests cover inserted/removed state values and strict parsing, plus
+renderer/internal-resolution defaults, file/environment overrides,
 default/custom keyboard, mouse, and gamepad button mappings, analog response,
 and twin-stick behavior.
+
+### D3D12 state, scaling, and presentation layouts
+
+Build from the D3D12 preset:
+
+```powershell
+cmake --build --preset clang-cl-d3d12 `
+  --target mga_d3d12_vertex_tests
+ctest --test-dir out\build\clang-cl-d3d12 `
+  -R "^mga_d3d12_vertex$" --output-on-failure
+```
+
+This test covers decoded vertex/batch upload, pipeline/texture/framebuffer
+keys, shader constants, scaled scissor state, VRS selection, native,
+letterbox, portrait, and 1080p layouts, plus logical and full-resolution
+capture dimensions.
 
 ### Interpreter syscall and hybrid callback paths
 
@@ -692,6 +829,7 @@ The synthetic instruction streams validate:
 - an interpreted callback into static guest code and its patched HLE import;
 - nested re-entry from interpreted code into an active native dispatch entry;
 - VFPU scalar/quad memory forms and VFPU compute continuation; and
+- aggregate interpreter-profile output without changing the v2 miss log; and
 - rejection of an unknown runtime syscall code.
 
 The module-loader fixture also verifies that a guest export resolves only for
@@ -709,10 +847,10 @@ Run both standalone native runtime tests in the fork with:
 make -C external\psp-recomp test-runtime
 ```
 
-Current combined CTest result:
+Current combined D3D12-preset CTest result:
 
 ```text
-6/6 tests passed
+8/8 tests passed
 ```
 
 ## Useful diagnostics
@@ -731,7 +869,14 @@ Current combined CTest result:
 | `SR_INPUT_LOG=1` | Live logical input edges and gamepad presence |
 | `SR_FBSNAP_PRESENT=N` | Rotating snapshots every N presentations |
 | `SR_FBCAPTURE_PRESENTS=a,b,...` | Exact presentation snapshots for acceptance |
+| `SR_D3D12_CAPTURE_INTERNAL=1` | Preserve full internal-resolution pixels in D3D12 captures |
 | `SR_FPS_COUNTER=1` | Rolling FPS and average frame time in the window title |
+| `SR_PERF_FILE=path` | Per-presentation CSV with host/backend/GPU timing |
+| `SR_PERF_FRAME_BUDGET_MS=N` | Override the structured timing over-budget threshold |
+| `SR_INTERP_PROFILE=path` | Aggregate calls and guest instructions by fallback target |
+| `SR_D3D12_TEXTURE_LOG=1` | D3D12 texture-cache summary on clean exit |
+| `SR_D3D12_FRAMEBUFFER_LOG=1` | D3D12 framebuffer/cache/transfer summary on clean exit |
+| `SR_D3D12_PSO_LOG=1` | In-memory PSO compilation/cache summary |
 | `SR_DISABLE_NATIVE_MODULES=*|name,...` | Keep selected generated modules interpreted for differential checks |
 | `SR_TRACE_RAM=path` | Write protected RAM when a bounded trace completes |
 | `SR_WATCHDOG_RAM=1` | Local RAM dump on the first no-frame watchdog |

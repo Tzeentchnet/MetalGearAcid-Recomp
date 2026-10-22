@@ -77,10 +77,11 @@ The next ready P0 work is:
   - Dependency: T-1.2 is complete; T-1.3 should land with or before its
     implementation commit.
   - Done 2026-10-21: runtime/module work and native tests committed as
-    `51aa462`; codegen/import/VFPU7 work committed as `1225147`; the parent
-    submodule was subsequently advanced to tested fidelity commits `abad642`
-    and `7980eb7`, then to the tested native-overlay/audio/stability commit
-    `2bf37a0`. The parent is pinned to `2bf37a0`. The fork branch is published at
+    `e2dbc91`; codegen/import/VFPU7 work committed as `9683b44`; the parent
+    submodule was subsequently advanced to tested fidelity commits `245031c`
+    and `96dd536`, then to native-overlay/audio/stability commit `3f7d48e` and
+    renderer/profiling diagnostics commit `40447fd`. The parent is pinned to
+    `40447fd`. The fork branch is published at
     `Tzeentchnet/psp-recomp`; the parent is published privately at
     `Tzeentchnet/MetalGearAcid-Recomp`.
 - [x] **T-1.2 P0** Add synthetic runtime PRX loader tests.
@@ -303,6 +304,10 @@ The next ready P0 work is:
     route now passes 30,000 presentations; the dark briefing's intended
     advance/skip control remains. A verified post-Forest `ULUS10006002` save
     now provides a direct first-mission/gameplay route.
+  - Progress 2026-10-22: corrected the load script to keep LOAD GAME selected,
+    advance to the map, press UP to select `Lobito Laboratory - Outside Gate`,
+    confirm STAGE01, and pass the delayed OK prompt. The route reproducibly
+    loads the `0x23200` `st01` overlay at `0x09b6c600`.
 - [ ] **T-4.2 P0** Enter a new game and complete initial deck/card setup.
 - [ ] **T-4.3 P0** Validate movement, camera, card selection, action execution,
   pause, and cancel/confirm behavior.
@@ -311,6 +316,8 @@ The next ready P0 work is:
 - [ ] **T-4.5 P0** Validate every module/stage transition on the route.
   - Progress 2026-10-21: init -> title -> prologue -> st00 is deterministic
     and crash-free through present 30,000.
+  - Progress 2026-10-22: the protected post-Forest route adds
+    init -> title -> load/map overlay -> st01 with an unchanged save fixture.
 - [ ] **T-4.6 P0** Save, exit, restart, load, and resume the route.
   - Progress 2026-10-21: public completion and post-Forest saves decrypt and
     load natively from isolated fixtures. The Forest save reaches two later
@@ -362,8 +369,13 @@ The next ready P0 work is:
     pass semantic metrics. They are not pixel-identical: title frames have
     maximum channel deltas of 18-25 with about 13.6% of pixels above delta 8;
     the transition has maximum delta 9.
-- [ ] **T-6.4 P1** Validate supported internal resolutions and presentation
+- [x] **T-6.4 P1** Validate supported internal resolutions and presentation
   layouts.
+  - Done 2026-10-22: every D3D12 scale from 1x through 8x passes the exact
+    front-end functional gate. The selected STAGE01 route passes at 1x, 2x,
+    4x, and 8x. Full-resolution capture, subpixel/box-filter analysis, VRS
+    on/off comparisons, and native/letterbox/portrait layout tests are
+    recorded in MGA-F-051 and MGA-F-052.
 - [x] **T-6.5 P1** Resolve or document GE commands `0xf0-0xf9`.
   - Done 2026-10-21: MGA-F-022 classifies the range as immediate-vertex
     state; zero initialization is supported and nonzero VAP submission fails
@@ -373,6 +385,11 @@ The next ready P0 work is:
   - Progress 2026-10-21: the D3D12 title/prologue acceptance route completes
     in 13.9s with real-time pacing enabled for its final 900 presentations.
     Gameplay, PMF, and longer loading transitions remain.
+  - Progress 2026-10-22: structured CSV timing now reports p50/p95/p99,
+    over-budget intervals, backend cost, and fenced D3D12 GPU timestamps.
+    Three-run front-end and STAGE01 matrices cover 1x, 2x, 4x, and 8x; GPU
+    work remains at or below 2.06 ms on the measured routes. Movies and
+    full-stage loading/steady-state pacing remain.
 - [ ] **T-6.7 P1** Validate XAudio2 latency, SAS/ATRAC behavior, underruns, and
   movie synchronization.
   - Progress 2026-10-21: blocking output retains three guest buffers or two
@@ -391,9 +408,19 @@ The next ready P0 work is:
     stop. Native handoff depth is now capped at 256; deeper execution uses a
     scheduler-aware interpreter with chunked budgets, avoiding fiber-stack
     growth on the extended st00 route.
+  - Progress 2026-10-22: aggregate interpreter profiles replace unique-target
+    guesses with call/instruction counts. Two entries represent about 56% of
+    front-end interpreted work. On the post-Forest route,
+    `st01/0x09b6effc` represents 21,855,537 instructions, or 81.15% of the
+    26,931,234 interpreted total. Whole-generated-code `/O2` was rejected at
+    a 0.96% median gain.
 - [ ] **T-6.9 P1** Run repeated stage-transition and save/load soak tests.
   - Progress 2026-10-21: completion and post-Forest fixtures load without
     mutation; the Forest route reaches two later overlays and exits normally.
+  - Progress 2026-10-22: twelve isolated post-Forest runs (three each at 1x,
+    2x, 4x, and 8x) load STAGE01 and leave each fixture byte-identical. One
+    2x timing sample contained a 52.2-second host scheduling outlier; the
+    other runs and GPU timestamps did not reproduce it.
 - [ ] **T-6.10 P1** Run a complete-campaign soak while monitoring memory,
   handles, callbacks, and thread count.
 - [ ] **T-6.11 P2** Validate focus changes, minimize/restore, controller
@@ -405,11 +432,27 @@ The next ready P0 work is:
     specialization, and a per-primitive decoded-texel cache keep all software
     checkpoint hashes unchanged while raising measured pacing from 39.22 to
     46.35 FPS. D3D12 reaches 162.55 FPS host presentation throughput.
+- [ ] **T-6.13 P1** Generate, live-verify, and activate the native STAGE01
+  overlay.
+  - Identity: `stage/st01/st01.prx`, SHA-1
+    `9dfc231f933ef0d508ad7763f74fb6d857581e66`, runtime base `0x09b6c600`.
+  - Acceptance: preserve the corrected route/captures and save fixture, retain
+    explicit fallback identity for live-code mismatches, and materially reduce
+    the 26.9-million-instruction interpreter total.
+- [ ] **T-6.14 P2** Replace unsafe serialized D3D12 pipeline-library
+  persistence with validated per-PSO caching or remove the experimental path.
+  - `SR_D3D12_PSO_CACHE` reuse removed the validation GPU on the second
+    process. Normal in-memory async PSOs remain active; disk reuse now requires
+    `SR_D3D12_UNSAFE_PSO_CACHE=1`.
 
 ## Phase 7 - CI and source release
 
 - [ ] **T-7.1 P0** Add public CI for Python tests, synthetic runtime tests,
   content audit, and runtime-only clang-cl build.
+  - Progress 2026-10-22: parent CTest now exposes graphics-configuration and
+    D3D12 vertex/state/layout tests in addition to the existing runtime set;
+    structured-performance, interpreter-profile, and scaling-capture parent
+    tools have unit coverage. CI wiring remains.
 - [ ] **T-7.2 P0** Add protected CI for verified extraction, codegen, full
   native build, trace checks, and frame metrics.
 - [ ] **T-7.3 P0** Run a clean recursive clone/build/run from a separate path.

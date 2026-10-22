@@ -10,7 +10,7 @@ framework.
   `https://github.com/Tzeentchnet/MetalGearAcid-Recomp`
 - Public maintained runtime fork:
   `https://github.com/Tzeentchnet/psp-recomp`
-- Pinned runtime commit: `2bf37a0`
+- Pinned runtime commit: `40447fd`
 
 The parent being private does not change the evidence policy below. Game data,
 generated code, saves, logs, traces, dumps, and captures remain untracked.
@@ -43,7 +43,10 @@ paths pass. Gameplay, card/campaign PMFs, save creation, broader D3D12
 golden/scaling coverage, and full-game stability remain later milestones.
 The D3D12 build now passes
 the deterministic front-end gate and is the recommended performance path;
-software rendering remains the pixel-exact reference.
+software rendering remains the pixel-exact reference. Scales 1x-8x pass that
+gate, 1x/2x/4x/8x also load the selected post-Forest STAGE01 route, and
+structured profiling identifies native STAGE01 conversion as the dominant
+next measured performance opportunity.
 
 Reduced machine-readable evidence lives in
 `reference/native_frontend.json`, `reference/native_frontend_menu.json`, and

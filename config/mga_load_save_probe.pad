@@ -10,20 +10,15 @@
 960 2040 0008 4 4
 1080 2280 0008 4 4
 1200 2520 0008 4 4
-# The existing-save menu opens on LOAD GAME. Move down once to CONTINUE,
-# then confirm with CIRCLE.
+# The post-Forest save appears under LOAD GAME. Confirm LOAD GAME, select the
+# save, then advance to the map.
 1320 2760 0008 4 4
-1440 3000 0040 4 4
 1500 3120 2000 4 4
 1620 3360 2000 4 4
 1740 3600 2000 4 4
 1860 3840 2000 4 4
-1980 4080 2000 4 4
-2100 4320 2000 4 4
-2220 4560 2000 4 4
-2340 4800 2000 4 4
-2460 5040 2000 4 4
-2580 5280 2000 4 4
-2700 5520 2000 4 4
-2820 5760 2000 4 4
-2940 6000 2000 4 4
+# Move up from Forest to the actual next mission, Lobito Laboratory -
+# Outside Gate, confirm STAGE01, then confirm the OK prompt after its debounce.
+2340 4800 0010 20 20
+2460 5040 2000 8 8
+2940 6000 2000 60 60

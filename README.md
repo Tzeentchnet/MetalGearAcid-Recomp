@@ -23,7 +23,7 @@ git clone --recurse-submodules `
 ```
 
 The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
-`2bf37a0`.
+`40447fd`.
 
 ## Documentation
 
@@ -63,15 +63,20 @@ The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
   about 45%. Pixel-exact software-rasterizer optimizations raise the measured
   menu/prologue route from 39.2 to 46.4 FPS, while the accepted D3D12 route
   reaches about 162.6 FPS host presentation throughput on the validation PC.
+  Every D3D12 scale from 1x through 8x passes the front-end gate, and
+  1x/2x/4x/8x load the selected post-Forest STAGE01 route.
   Failed live-code wrappers are now kept in the interpreter, eliminating the
   post-prologue host stack overflow; the 50,000-presentation regression route
   exits cleanly. Fixed-rate XAudio2 output retains real guest audio across
   load gaps; the accepted route reports zero underruns/drops and one
   preservation-silence transition. PSP scratchpad support and a bounded,
   scheduler-aware interpreter now carry the deterministic route into st00
-  through present 30,000. The next milestone is identifying the dark
+  through present 30,000. Structured host/GPU/interpreter profiles identify
+  native STAGE01 conversion as the highest-confidence performance work: one
+  entry accounts for 81.15% of the measured post-Forest interpreted
+  instructions. The next gameplay milestone remains identifying the dark
   briefing's intended advance control and completing a playable, savable
-  first-mission route.
+  new-game first-mission route.
 
 ## Requirements
 
@@ -134,13 +139,26 @@ out\build\clang-cl\mga.exe --boot `
   build\mga\gen\mga_image.bin 08804000 0880432c none --gui
 ```
 
+For a local Windows checkout, double-click `Launch Metal Gear Acid.bat`.
+The launcher prefers the D3D12 build, falls back to the software build, opens
+the Metal Gear Acid graphics and controller settings, and then starts the
+game. It uses `Metal Gear Acid (USA)\Metal Gear Acid (USA).iso` by default;
+set `PSP_ISO` first to use a supported disc image at another location.
+
 The first GUI run creates portable `graphics.ini` and `input.ini` beside the
-executable and opens controller setup. The runtime uses its conservative
-one-million-instruction fallback cap; override it only for diagnostics with
-`SR_INTERP_MAX_STEPS`.
+executable and opens controller setup. Metal Gear Acid exposes standard PSP
+button bindings without the Killzone-specific twin-stick controls. The runtime
+uses its conservative one-million-instruction fallback cap; override it only
+for diagnostics with `SR_INTERP_MAX_STEPS`.
 
 `SR_FPS_COUNTER=1` updates the window title every 500 ms with rolling FPS and
 average frame time on GDI, Vulkan, and D3D12.
+
+For repeatable profiling, `SR_PERF_FILE` writes per-presentation host/backend/
+GPU timing and `SR_INTERP_PROFILE` writes aggregate fallback cost by module and
+target. `SR_D3D12_CAPTURE_INTERNAL=1` preserves full scaled output for
+resolution analysis. See [REPRODUCTION.md](docs/REPRODUCTION.md) for the
+report tools and acceptance matrix.
 
 For deterministic tests, use the shared profiles in `config/` and create
 isolated PPSSPP/native memstick roots with `tools\mga\memstick.py`; see

@@ -192,7 +192,9 @@ if(MGA_RUNTIME_ONLY)
   add_dependencies(mga_runtime_compile mga_at3 mga_savedata_crypto)
   target_include_directories(mga_runtime_compile PRIVATE "${RT}")
   target_compile_definitions(mga_runtime_compile PRIVATE
-    _CRT_SECURE_NO_WARNINGS SR_GAME_TITLE="Metal Gear Acid")
+    _CRT_SECURE_NO_WARNINGS
+    SR_GAME_TITLE="Metal Gear Acid"
+    SR_ENABLE_KZL_TWIN_STICK=0)
   target_compile_features(mga_runtime_compile PRIVATE cxx_std_17)
   target_compile_options(mga_runtime_compile PRIVATE ${MGA_FP_FLAGS})
   if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
@@ -221,7 +223,8 @@ target_compile_definitions(mga_driver PRIVATE
   SR_MODULE_START_STACK_SIZE=0x40000u
   SR_MODULE_START_ATTR=0u
   SR_MODULE_POLICY_INIT=sr_mga_register_module_policy
-  SR_INITIAL_GE_LIST_ID=0)
+  SR_INITIAL_GE_LIST_ID=0
+  SR_ENABLE_KZL_TWIN_STICK=0)
 if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
   target_compile_options(mga_driver PRIVATE /clang:-Wno-macro-redefined)
 endif()
@@ -318,6 +321,21 @@ if(BUILD_TESTING)
   endif()
   add_test(NAME mga_input_config COMMAND mga_input_config_tests)
 
+  add_executable(mga_graphics_config_tests EXCLUDE_FROM_ALL
+    ${PSP_RECOMP_DIR}/tools/tests/graphics_config_test.c
+    ${RT}/graphics_config.c
+    ${RT}/settings_path.c)
+  target_include_directories(mga_graphics_config_tests PRIVATE "${RT}")
+  target_compile_definitions(mga_graphics_config_tests PRIVATE
+    _CRT_SECURE_NO_WARNINGS)
+  target_compile_options(mga_graphics_config_tests PRIVATE ${MGA_FP_FLAGS})
+  if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
+    target_compile_options(mga_graphics_config_tests PRIVATE /W3)
+  else()
+    target_compile_options(mga_graphics_config_tests PRIVATE -Wall -Wextra)
+  endif()
+  add_test(NAME mga_graphics_config COMMAND mga_graphics_config_tests)
+
   add_executable(mga_interp_tests EXCLUDE_FROM_ALL
     ${PSP_RECOMP_DIR}/tools/tests/interp_fallback_test.cpp
     ${RT}/recomp.c
@@ -341,4 +359,26 @@ if(BUILD_TESTING)
     target_compile_options(mga_interp_tests PRIVATE -Wall -Wextra)
   endif()
   add_test(NAME mga_interpreter_fallback COMMAND mga_interp_tests)
+
+  if(MGA_ENABLE_D3D12)
+    add_executable(mga_d3d12_vertex_tests EXCLUDE_FROM_ALL
+      ${PSP_RECOMP_DIR}/tools/tests/d3d12_vertex_test.cpp
+      ${RT}/gpu_d3d12/vertex.cpp
+      ${RT}/gpu_d3d12/framebuffer_key.cpp
+      ${RT}/gpu_d3d12/pipeline_key.cpp
+      ${RT}/gpu_d3d12/shader_state.cpp
+      ${RT}/gpu_d3d12/present_layout.cpp
+      ${RT}/gpu_d3d12/texture_key.cpp)
+    target_include_directories(mga_d3d12_vertex_tests PRIVATE "${RT}")
+    target_compile_definitions(mga_d3d12_vertex_tests PRIVATE
+      _CRT_SECURE_NO_WARNINGS)
+    target_compile_features(mga_d3d12_vertex_tests PRIVATE cxx_std_17)
+    target_compile_options(mga_d3d12_vertex_tests PRIVATE ${MGA_FP_FLAGS})
+    if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
+      target_compile_options(mga_d3d12_vertex_tests PRIVATE /W3)
+    else()
+      target_compile_options(mga_d3d12_vertex_tests PRIVATE -Wall -Wextra)
+    endif()
+    add_test(NAME mga_d3d12_vertex COMMAND mga_d3d12_vertex_tests)
+  endif()
 endif()

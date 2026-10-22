@@ -1038,3 +1038,164 @@ A disposable native fixture loads the save, reaches the `0x18a00` and
 `0x23200` post-save overlays, exits normally, and remains byte-identical.
 This provides a repeatable gameplay/audio route without replaying the long
 scripted prologue.
+
+### MGA-F-051 - Structured timing separates host, submission, and GPU cost
+
+Opt-in diagnostics now write every measured presentation to a stable CSV and
+record D3D12 timestamp-query results after the owning frame fence completes.
+The existing human-readable windows now include p50, p95, p99, over-budget
+count, and GPU average/maximum. Bounded runs shut the frontend down cleanly, so
+pipeline, texture, and framebuffer summaries are no longer lost to `_Exit`.
+
+Three accepted front-end runs at each representative scale measured:
+
+| Internal scale | Median host present FPS | Median p95 | Median p99 | Median GPU work |
+|---:|---:|---:|---:|---:|
+| 1x | `157.83` | `23.50 ms` | `32.44 ms` | `0.10 ms` |
+| 2x | `153.62` | `23.44 ms` | `32.39 ms` | `0.18 ms` |
+| 4x | `158.45` | `22.72 ms` | `32.35 ms` | `0.42 ms` |
+| 8x | `157.60` | `15.17 ms` | `32.59 ms` | `1.75 ms` |
+
+The corrected post-Forest/STAGE01 route produced median host presentation
+throughput of `178.07`, `175.44`, `175.26`, and `171.98` FPS at 1x, 2x, 4x,
+and 8x. Median GPU work was `0.11`, `0.20`, `0.44`, and `2.06` ms.
+
+These are host presentation-call rates, not the PSP's game FPS. They do show
+that the validated routes remain CPU/runtime-bound even at 8x. Disabling
+variable-rate shading at 2x, 4x, and 8x changed median throughput by less than
+the observed run variance and produced byte-identical logical and
+full-resolution title captures. VRS is not a release-critical optimization on
+this workload.
+
+### MGA-F-052 - Every supported scale passes, but point captures bias even scales
+
+The exact front-end acceptance route passed at every integer D3D12 scale from
+1x through 8x with:
+
+- the same 266-target fallback set;
+- all four semantic frame checks;
+- zero unknown HLE, permissive fallback, crash, watchdog, or interpreter stop;
+- zero audio drops or underruns; and
+- no D3D12 validation or device-removal failure.
+
+The post-Forest route also loaded the selected `0x23200` STAGE01 overlay and
+preserved its save fixture at 1x, 2x, 4x, and 8x.
+
+The old logical capture selects one internal pixel at `scale / 2`. Odd scales
+therefore reproduce the 1x title delta exactly, while even scales report
+misleadingly large point-sample deltas:
+
+| Scale | Pixels above delta 8, old point sample | Maximum delta |
+|---:|---:|---:|
+| 1x | `13.61%` | `18` |
+| 2x | `39.20%` | `98` |
+| 4x | `28.83%` | `57` |
+| 6x | `24.04%` | `41` |
+| 8x | `21.28%` | `34` |
+
+Full-internal-resolution captures prove that this is primarily a diagnostic
+sampling artifact rather than an even-scale rendering failure. Box-averaging
+each internal logical-pixel block brings 2x, 3x, 4x, and 8x back to
+`12.66-13.53%` above delta 8, matching the 1x distribution. The full images
+retain real subpixel information: `77.28-85.15%` of logical blocks contain
+more than one internal color.
+
+The runtime retains the established 480x272 point capture by default for
+compatibility and adds an explicit `SR_D3D12_CAPTURE_INTERNAL=1` path.
+`tools/mga/scaling_capture.py` analyzes every subpixel offset and a box-filtered
+logical result without changing existing goldens.
+
+### MGA-F-053 - The remaining title delta is common texture-stage behavior
+
+At 1x, the three textured title frames retain `13.54-13.62%` of pixels above
+delta 8 and maximum channel deltas of 18-25. The mostly untextured fade has
+only `0.61%` above delta 8 and maximum delta 9.
+
+Two controlled D3D12 experiments produced byte-identical captures to the
+default path:
+
+1. disabling the direct hardware-blend path; and
+2. selecting the legacy pixel shader.
+
+D3D12 capture reads the display texture before final window presentation, so
+the linear presentation sampler is also excluded. The common shader path uses
+hardware floating-point texture filtering, while the software oracle
+quantizes bilinear weights to 8 bits and truncates each interpolation stage.
+The evidence therefore localizes the dominant difference to texture
+sampling/interpolation quantization before destination blending. A manual
+PSP-quantized GPU sampler is the next focused experiment; broadening the
+existing whole-frame tolerance is not.
+
+### MGA-F-054 - Interpreter cost is concentrated in a few overlay entries
+
+`SR_INTERP_PROFILE=<path>` now records calls, guest instructions, syscalls,
+native handoffs, chunk limits, returns, and failures separately from the
+stable v2 fallback allowlist. The parent report tool aggregates multiple runs
+and ranks targets by actual work rather than unique address count.
+
+The accepted front-end route executes `2,055,263` interpreted instructions.
+Two entries account for about 56%:
+
+| Module/target | Calls | Instructions | Share |
+|---|---:|---:|---:|
+| `mga_stage_title/0x09b4665c` | `7,018` | `779,343` | `37.92%` |
+| `mga_stage_prologue/0x09b4d7dc` | `127` | `371,063` | `18.05%` |
+
+The corrected post-Forest route executes `26,931,234` interpreted
+instructions. Its selected mission overlay is:
+
+| Property | Value |
+|---|---|
+| Disc file | `PSP_GAME/USRDIR/stage/st01/st01.prx` |
+| Raw path | `disc0:/sce_lbn0x11e50_size0x2c138` |
+| SHA-1 | `9dfc231f933ef0d508ad7763f74fb6d857581e66` |
+| Runtime base | `0x09b6c600` |
+| Allocation | `0x23200` |
+
+Target `0x09b6effc` alone executes `21,855,537` instructions (`81.15%`);
+`0x09b7b218` adds `1,553,717` (`5.77%`). Generating and activating a verified
+native STAGE01 table is therefore the highest-confidence performance
+improvement. Generic compiler optimization is not a substitute for removing
+this interpreted workload.
+
+### MGA-F-055 - Whole-program O2 is below the action threshold
+
+A separate clang-cl build compiled every generated main and native-module
+translation unit with `/O2` instead of the reviewed `/O1` default. Three exact
+front-end acceptance runs measured:
+
+| Build | Median host present FPS | Median p95 | Run spread |
+|---|---:|---:|---:|
+| `/O1` | `157.83` | `23.50 ms` | `1.42%` |
+| `/O2` | `159.34` | `23.58 ms` | `4.42%` |
+
+The `0.96%` median difference is below the 5% action threshold and smaller
+than run variance. `/O1` remains the default; no new production option or
+larger generated objects are justified by this route.
+
+### MGA-F-056 - Serialized D3D12 pipeline libraries are unsafe on the validation driver
+
+An explicit cold/warm `SR_D3D12_PSO_CACHE` experiment wrote five route PSOs
+successfully. The second process loaded the `52,060`-byte library, then
+`LoadGraphicsPipeline` returned `DXGI_ERROR_DEVICE_REMOVED`; the device reason
+was `DXGI_ERROR_DRIVER_INTERNAL_ERROR`, and the run exited before the front
+end.
+
+The normal in-memory asynchronous PSO cache is unaffected. Disk persistence
+remains disabled by default and now requires the additional
+`SR_D3D12_UNSAFE_PSO_CACHE=1` diagnostic acknowledgement, preventing an
+ordinary opt-in from removing the device. Replacing pipeline-library
+serialization with individually validated cached-PSO blobs is preferable to
+silently accepting this driver-specific failure.
+
+## Ranked improvement opportunities
+
+| Rank | Priority | Opportunity | Evidence | Confidence | Disposition |
+|---:|---|---|---|---:|---|
+| 1 | P1 | Generate, live-verify, and activate native `st01` | One target is 81.15% of 26.9M interpreted Forest-route instructions | 10/10 | Next implementation |
+| 2 | P1 | Implement a PSP-quantized D3D12 sampler and feature-class goldens | Textured frames diverge; direct blend, legacy shader, and final presentation are excluded | 8/10 | Focused graphics experiment |
+| 3 | P1 | Replace serialized pipeline libraries with safe per-PSO persistence | Reusing the current disk cache removes the D3D12 device | 10/10 | Keep gated until redesigned |
+| 4 | P1 | Continue CMake/CTest integration for existing graphics/runtime tests | Relevant tests existed but were not reachable from the parent CTest surface | 9/10 | Incremental maintenance |
+| 5 | P2 | Convert the two dominant front-end fallback entries if they remain hot in gameplay | They represent about 56% of front-end interpreted instructions | 9/10 | After `st01` |
+| - | Reject | Switch all generated code to `/O2` | 0.96% median gain, below variance/action threshold | 9/10 | Keep `/O1` |
+| - | Defer | Tune VRS for the current routes | No measurable throughput or capture difference | 9/10 | Revisit on heavier scenes |

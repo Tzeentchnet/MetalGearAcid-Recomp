@@ -28,6 +28,10 @@ As of 2026-10-21:
   renderer;
 - optimized software rendering remains pixel-exact at the four title gates,
   and D3D12 passes the same functional front-end acceptance route; and
+- D3D12 scales 1x-8x pass the front-end gate, while 1x/2x/4x/8x also load the
+  selected post-Forest STAGE01 route with low measured GPU cost; and
+- structured host/GPU/interpreter profiles identify `st01/0x09b6effc` as the
+  dominant remaining measured runtime hot spot; and
 - gameplay, card PMFs, save creation, broader D3D12 scaling/golden coverage,
   campaign performance, and full-game stability are not yet validated.
 
@@ -304,8 +308,11 @@ Goal: turn functional correctness into a stable native PC experience.
 Progress: the opt-in FPS counter works on every presenter, the software
 front-end remains pixel-exact while improving from 39.22 to 46.35 FPS, and the
 dedicated D3D12 preset passes the deterministic title/menu/prologue route at
-1x with 162.55 FPS host presentation throughput. D3D12 color-delta tolerance,
-scaling, gameplay, movies, audio synchronization, and soak coverage remain.
+1x with 162.55 FPS host presentation throughput. All configured scales 1x-8x
+now pass that functional route; 1x/2x/4x/8x load STAGE01, and GPU timestamp
+work remains at or below 2.06 ms on the measured routes. Native STAGE01,
+PSP-quantized hardware sampling, movies, broader gameplay/audio
+synchronization, and soak coverage remain.
 
 Work:
 
