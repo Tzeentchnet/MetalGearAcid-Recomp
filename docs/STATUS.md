@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-10-22
+Last updated: 2026-10-24
 
 Milestone definitions and release gates are maintained in [PLAN.md](PLAN.md).
 Ready and blocked work is tracked internally.
@@ -37,6 +37,10 @@ Ready and blocked work is tracked internally.
   reaches about 162.6 FPS host presentation throughput on the validation PC.
 - Every D3D12 scale from 1x through 8x passes the front-end gate, and
   1x/2x/4x/8x load the selected post-Forest STAGE01 route.
+- The default executable exposes the same graphics controls as the MGA2
+  recomp: Automatic/D3D12/software/Vulkan selection, D3D12 1x-8x internal
+  resolution, 1x-5x xBRZ texture scaling on both hardware backends,
+  Balanced/Full-resolution D3D12 shading, and F11 desktop fullscreen.
 - The Win32 GDI baseline, Vulkan presenter with software GE, and full Vulkan
   GE backend all pass the deterministic front-end functional/audio/fallback
   gate. The Vulkan presenter preserves software captures exactly.

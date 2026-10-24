@@ -7,9 +7,14 @@ Validated through 2026-10-22 against:
 
 - Metal Gear Acid USA, `ULUS-10006`, disc version `1.00`;
 - PPSSPP `v1.20.4`, interpreter mode;
-- the `Tzeentchnet/psp-recomp` fork at pinned commit `66c18a5`, based on the
+- the `Tzeentchnet/psp-recomp` fork at then-pinned commit `66c18a5`, based on the
   sal063 toolkit;
 - Windows x64, clang-cl 19.1.5, CMake, and Ninja.
+
+The current parent pin is `138c2b8`. Its renderer-only successor changes were
+validated on 2026-10-24 with the graphics-config, texture-scaler, D3D12 vertex,
+and combined-build checks; the historical route evidence below remains tied
+to `66c18a5` unless a finding says otherwise.
 
 ## Disc and executable
 

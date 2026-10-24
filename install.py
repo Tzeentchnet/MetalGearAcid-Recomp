@@ -21,9 +21,13 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parent
 MINIMUM_CMAKE = (3, 25, 0)
 RENDERERS = {
-    "software": {
+    "combined": {
         "preset": "clang-cl",
         "executable": Path("out/build/clang-cl/mga.exe"),
+    },
+    "software": {
+        "preset": "clang-cl-software",
+        "executable": Path("out/build/clang-cl-software/mga.exe"),
     },
     "d3d12": {
         "preset": "clang-cl-d3d12",
@@ -126,20 +130,27 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
             "omit it to enter the path interactively"
         ),
     )
-    parser.add_argument(
+    renderer_group = parser.add_mutually_exclusive_group()
+    renderer_group.add_argument(
         "--renderer",
         choices=tuple(RENDERERS),
-        default="software",
+        default="combined",
         help=(
-            "renderer to build (default: software, which needs no SDL3)"
+            "renderer set to build (default: combined D3D12, Vulkan, and "
+            "software)"
         ),
+    )
+    renderer_group.add_argument(
+        "--software-only",
+        action="store_true",
+        help="build only the dependency-light software reference renderer",
     )
     parser.add_argument(
         "--sdl3-dir",
         type=Path,
         help=(
-            "directory containing SDL3Config.cmake for a D3D12 or "
-            "Vulkan build"
+            "optional directory containing SDL3Config.cmake; otherwise "
+            "the pinned SDL3 development package is downloaded"
         ),
     )
     parser.add_argument(
@@ -154,7 +165,10 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         action="store_true",
         help="verify, extract, and generate without configuring or building",
     )
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.software_only:
+        args.renderer = "software"
+    return args
 
 
 def load_runtime_config(root: Path) -> RuntimeConfig:
@@ -566,12 +580,7 @@ def resolve_sdl3_dir(
         Path(env["SDL3_DIR"]) if env.get("SDL3_DIR") else None
     )
     if value is None:
-        if env.get("CMAKE_PREFIX_PATH"):
-            return None
-        raise InstallError(
-            f"The {renderer} renderer requires an SDL3 development package. "
-            "Pass --sdl3-dir C:\\path\\to\\SDL3\\cmake or set SDL3_DIR."
-        )
+        return None
     try:
         resolved = value.expanduser().resolve(strict=True)
     except OSError as error:
@@ -585,14 +594,36 @@ def validate_renderer_environment(
     renderer: str,
     env: Mapping[str, str],
 ) -> None:
-    if renderer != "vulkan":
+    if renderer not in {"combined", "vulkan"}:
         return
     sdk = env.get("VULKAN_SDK")
-    if not sdk or not Path(sdk).is_dir():
+    if sdk:
+        candidates = [Path(sdk)]
+    else:
+        sdk_root = Path(r"C:\VulkanSDK")
+        try:
+            candidates = sorted(
+                (path for path in sdk_root.iterdir() if path.is_dir()),
+                reverse=True,
+            )
+        except OSError:
+            candidates = []
+    if any(
+        (candidate / "Include" / "vulkan" / "vulkan.h").is_file()
+        and (candidate / "Lib" / "vulkan-1.lib").is_file()
+        for candidate in candidates
+    ):
+        return
+    if sdk:
         raise InstallError(
-            "The Vulkan renderer requires an installed Vulkan SDK with "
-            "VULKAN_SDK set."
+            "VULKAN_SDK does not contain the required x64 headers and "
+            f"library: {sdk}"
         )
+    raise InstallError(
+        "The combined renderer build requires a Vulkan SDK. Install it "
+        "under C:\\VulkanSDK, set VULKAN_SDK, choose --renderer d3d12, "
+        "or use --software-only."
+    )
 
 
 def cmake_commands(

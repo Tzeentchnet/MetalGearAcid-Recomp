@@ -18,7 +18,7 @@ sections 1-3, and ISO-path configuration for the launcher. The explicit
 commands below remain authoritative for reproducible validation and release
 evidence.
 
-The parent currently pins tested fork commit `66c18a5`. The relevant sequence
+The parent currently pins tested fork commit `138c2b8`. The relevant sequence
 is:
 
 - `e2dbc91` - runtime PRX modules and synthetic runtime tests;
@@ -38,12 +38,10 @@ is:
   D3D12 golden capture.
 - `66c18a5` - title-configurable Killzone twin-stick behavior and standard PSP
   controller configuration for other integrations.
+- `138c2b8` - shared 1x-5x xBRZ texture scaling and D3D12 shading controls.
 
-The tested `kzl` development line through this pin has been merged into the
-maintained fork's `main` line. The parent remains pinned to the exact commit.
-Checkout metadata continues to name `kzl` until the published `main` ref
-contains `66c18a5`, so source-archive setup remains reproducible during that
-publication gap.
+The parent remains pinned to the exact commit on the maintained fork's `main`
+line so both Git submodule and source-archive setup are reproducible.
 
 ## 1. Extract the verified disc
 
@@ -108,6 +106,7 @@ Expected output:
 
 ```text
 out/build/clang-cl/mga.exe
+out/build/clang-cl/SDL3.dll
 out/build/clang-cl/assets/vfpu/
 out/build/clang-cl/font/
 ```
@@ -117,52 +116,36 @@ modules by guest path, SHA-1, expected module name, and guest/HLE mode. A hash
 or name mismatch fails module load. Unlisted plaintext stage overlays remain
 guest-executed; unlisted encrypted modules are rejected.
 
-Build the recommended D3D12 performance path separately so the software
-reference remains available:
+The default executable contains D3D12, Vulkan, and software renderers. Build
+the software-reference executable separately when a dependency-light or
+hardware-independent baseline is required:
 
 ```powershell
-cmake --preset clang-cl-d3d12 `
-  -DSDL3_DIR="C:\path\to\SDL3\cmake"
-cmake --build --preset clang-cl-d3d12 `
+cmake --preset clang-cl-software
+cmake --build --preset clang-cl-software `
   --target mga_driver --parallel
 ```
 
-Select it with:
+The dedicated `clang-cl-d3d12` and `clang-cl-vulkan` presets remain available
+for backend-isolated historical comparisons. Select renderers in the combined
+build with `graphics.ini` or, for unattended diagnostics, environment
+overrides:
 
 ```powershell
+# D3D12 at native internal resolution.
 $env:SR_GPU = "d3d12"
 $env:SR_D3D12_SCALE = "1"
 $env:SR_FPS_COUNTER = "1"
-```
 
-Build the optional Vulkan path separately. The Visual Studio developer shell
-must see an installed Vulkan SDK (`VULKAN_SDK`) and the same SDL3 package:
-
-```powershell
-cmake --preset clang-cl-vulkan `
-  -DSDL3_DIR="C:\path\to\SDL3\cmake"
-cmake --build --preset clang-cl-vulkan `
-  --target mga_driver --parallel
-```
-
-Renderer selection:
-
-```powershell
 # Pixel-exact software GE through Win32 GDI.
 $env:SR_GPU = "sw"
 $env:SR_VIDEO = "gdi"
-out\build\clang-cl\mga.exe --boot `
-  build\mga\gen\mga_image.bin 08804000 0880432c none --gui
-
-# Software GE through the SDL3/Vulkan presenter.
-$env:SR_GPU = "sw"
-Remove-Item Env:SR_VIDEO -ErrorAction SilentlyContinue
-out\build\clang-cl-vulkan\mga.exe --boot `
-  build\mga\gen\mga_image.bin 08804000 0880432c none --gui
 
 # Full Vulkan GE renderer and presenter.
 $env:SR_GPU = "vk"
-out\build\clang-cl-vulkan\mga.exe --boot `
+Remove-Item Env:SR_VIDEO -ErrorAction SilentlyContinue
+
+out\build\clang-cl\mga.exe --boot `
   build\mga\gen\mga_image.bin 08804000 0880432c none --gui
 ```
 

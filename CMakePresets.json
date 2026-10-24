@@ -2,8 +2,8 @@
   "version": 6,
   "configurePresets": [
     {
-      "name": "clang-cl",
-      "displayName": "clang-cl (x64, Ninja, Release)",
+      "name": "clang-cl-base",
+      "hidden": true,
       "description": "VS 2022 Build Tools clang-cl. Run from a VS x64 developer shell.",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
@@ -18,8 +18,7 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang-cl",
         "CMAKE_CXX_COMPILER": "clang-cl",
-        "CMAKE_BUILD_TYPE": "Release",
-        "MGA_ENABLE_D3D12": "OFF"
+        "CMAKE_BUILD_TYPE": "Release"
       },
       "condition": {
         "type": "equals",
@@ -28,21 +27,44 @@
       }
     },
     {
-      "name": "clang-cl-d3d12",
-      "inherits": "clang-cl",
-      "displayName": "clang-cl + D3D12 (x64, Ninja, Release)",
-      "description": "D3D12 renderer build. Pass SDL3_DIR or CMAKE_PREFIX_PATH to an SDL3 development package.",
+      "name": "clang-cl",
+      "inherits": "clang-cl-base",
+      "displayName": "clang-cl (D3D12 + Vulkan, x64, Release)",
       "cacheVariables": {
-        "MGA_ENABLE_D3D12": "ON"
+        "MGA_ENABLE_D3D12": "ON",
+        "MGA_ENABLE_VULKAN": "ON",
+        "MGA_FETCH_SDL3": "ON"
+      }
+    },
+    {
+      "name": "clang-cl-software",
+      "inherits": "clang-cl-base",
+      "displayName": "clang-cl (software reference, x64, Release)",
+      "cacheVariables": {
+        "MGA_ENABLE_D3D12": "OFF",
+        "MGA_ENABLE_VULKAN": "OFF"
+      }
+    },
+    {
+      "name": "clang-cl-d3d12",
+      "inherits": "clang-cl-base",
+      "displayName": "clang-cl + D3D12 (x64, Ninja, Release)",
+      "description": "D3D12-only compatibility build.",
+      "cacheVariables": {
+        "MGA_ENABLE_D3D12": "ON",
+        "MGA_ENABLE_VULKAN": "OFF",
+        "MGA_FETCH_SDL3": "ON"
       }
     },
     {
       "name": "clang-cl-vulkan",
-      "inherits": "clang-cl",
+      "inherits": "clang-cl-base",
       "displayName": "clang-cl + Vulkan (x64, Ninja, Release)",
-      "description": "Vulkan renderer build. Pass SDL3_DIR and install the Vulkan SDK.",
+      "description": "Vulkan-only compatibility build.",
       "cacheVariables": {
-        "MGA_ENABLE_VULKAN": "ON"
+        "MGA_ENABLE_D3D12": "OFF",
+        "MGA_ENABLE_VULKAN": "ON",
+        "MGA_FETCH_SDL3": "ON"
       }
     }
   ],
@@ -50,6 +72,10 @@
     {
       "name": "clang-cl",
       "configurePreset": "clang-cl"
+    },
+    {
+      "name": "clang-cl-software",
+      "configurePreset": "clang-cl-software"
     },
     {
       "name": "clang-cl-d3d12",

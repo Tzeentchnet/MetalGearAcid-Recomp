@@ -6,24 +6,85 @@ set(MGA_GEN_DIR "${CMAKE_SOURCE_DIR}/build/mga/gen" CACHE PATH
 set(PSP_RECOMP_DIR "${CMAKE_SOURCE_DIR}/external/psp-recomp" CACHE PATH
     "PSP recompiler/runtime fork")
 
-option(MGA_ENABLE_D3D12 "Build the SDL3/D3D12 renderer" OFF)
-option(MGA_ENABLE_VULKAN "Build the SDL3/Vulkan renderer" OFF)
 option(MGA_RUNTIME_ONLY "Compile the runtime without generated game code" OFF)
 option(MGA_ENABLE_INSTRUCTION_TRACE "Keep instruction trace hooks" OFF)
-
-if(MGA_ENABLE_D3D12 AND MGA_ENABLE_VULKAN)
-  message(FATAL_ERROR "Select only one SDL3 renderer")
+set(MGA_HARDWARE_DEFAULT ON)
+if(MGA_RUNTIME_ONLY)
+  set(MGA_HARDWARE_DEFAULT OFF)
 endif()
+option(MGA_ENABLE_D3D12
+       "Build the SDL3/D3D12 renderer" ${MGA_HARDWARE_DEFAULT})
+option(MGA_ENABLE_VULKAN
+       "Build the SDL3/Vulkan renderer" ${MGA_HARDWARE_DEFAULT})
+unset(MGA_HARDWARE_DEFAULT)
+option(MGA_FETCH_SDL3
+       "Download the pinned SDL3 development package when it is not installed"
+       ON)
+
 if(MGA_RUNTIME_ONLY AND (MGA_ENABLE_D3D12 OR MGA_ENABLE_VULKAN))
-  message(FATAL_ERROR "MGA_RUNTIME_ONLY does not include the SDL3 backend")
+  message(FATAL_ERROR
+    "MGA_RUNTIME_ONLY requires MGA_ENABLE_D3D12=OFF and "
+    "MGA_ENABLE_VULKAN=OFF")
 endif()
 if(MGA_ENABLE_D3D12 OR MGA_ENABLE_VULKAN)
   if(NOT WIN32)
-    message(FATAL_ERROR "The SDL3 renderer presets require Windows")
+    message(FATAL_ERROR "The SDL3 hardware renderers currently require Windows")
   endif()
-  find_package(SDL3 CONFIG REQUIRED COMPONENTS SDL3-shared)
+  if(NOT EXISTS "${PSP_RECOMP_DIR}/src/rt/texture_scaler.cpp" OR
+     NOT EXISTS "${PSP_RECOMP_DIR}/third_party/xbrz/xbrz.cpp")
+    message(FATAL_ERROR
+      "Hardware rendering requires psp-recomp commit 138c2b8 or newer")
+  endif()
+  find_package(SDL3 CONFIG QUIET COMPONENTS SDL3-shared)
+  if(NOT SDL3_FOUND)
+    if(NOT MGA_FETCH_SDL3)
+      message(FATAL_ERROR
+        "SDL3 was not found. Set SDL3_DIR or enable MGA_FETCH_SDL3.")
+    endif()
+    include(FetchContent)
+    FetchContent_Declare(mga_sdl3
+      URL
+        "https://github.com/libsdl-org/SDL/releases/download/release-3.2.20/SDL3-devel-3.2.20-VC.zip"
+      URL_HASH
+        "SHA256=33968846724F8B68D58AD0B42274E00E845FB4B35C0AC88CEDBE023A755116D4"
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    FetchContent_GetProperties(mga_sdl3)
+    if(NOT mga_sdl3_POPULATED)
+      if(POLICY CMP0169)
+        cmake_policy(PUSH)
+        cmake_policy(SET CMP0169 OLD)
+      endif()
+      FetchContent_Populate(mga_sdl3)
+      if(POLICY CMP0169)
+        cmake_policy(POP)
+      endif()
+    endif()
+    find_path(MGA_SDL3_CONFIG_DIR SDL3Config.cmake
+      PATHS
+        "${mga_sdl3_SOURCE_DIR}/cmake"
+        "${mga_sdl3_SOURCE_DIR}/SDL3-3.2.20/cmake"
+      NO_DEFAULT_PATH)
+    if(NOT MGA_SDL3_CONFIG_DIR)
+      message(FATAL_ERROR
+        "The pinned SDL3 package did not contain SDL3Config.cmake")
+    endif()
+    set(SDL3_DIR "${MGA_SDL3_CONFIG_DIR}" CACHE PATH
+        "Directory containing SDL3Config.cmake" FORCE)
+    find_package(SDL3 CONFIG REQUIRED COMPONENTS SDL3-shared)
+  endif()
 endif()
 if(MGA_ENABLE_VULKAN)
+  if(WIN32 AND NOT DEFINED Vulkan_ROOT AND "$ENV{VULKAN_SDK}" STREQUAL "")
+    file(GLOB MGA_VULKAN_SDKS LIST_DIRECTORIES TRUE "C:/VulkanSDK/*")
+    list(SORT MGA_VULKAN_SDKS COMPARE NATURAL ORDER DESCENDING)
+    foreach(MGA_VULKAN_SDK IN LISTS MGA_VULKAN_SDKS)
+      if(EXISTS "${MGA_VULKAN_SDK}/Include/vulkan/vulkan.h")
+        set(Vulkan_ROOT "${MGA_VULKAN_SDK}")
+        message(STATUS "Using Vulkan SDK ${Vulkan_ROOT}")
+        break()
+      endif()
+    endforeach()
+  endif()
   find_package(Vulkan REQUIRED)
 endif()
 if(NOT MGA_RUNTIME_ONLY AND CMAKE_C_COMPILER_ID STREQUAL "MSVC")
@@ -200,6 +261,11 @@ if(MGA_ENABLE_VULKAN)
     ${RT}/gpu_sdl3vk/sdl3vk.c
     ${RT}/gpu_sdl3vk/ge_gpu.c)
 endif()
+if(MGA_ENABLE_D3D12 OR MGA_ENABLE_VULKAN)
+  list(APPEND MGA_RUNTIME_SRCS
+    ${RT}/texture_scaler.cpp
+    ${PSP_RECOMP_DIR}/third_party/xbrz/xbrz.cpp)
+endif()
 
 if(MGA_RUNTIME_ONLY)
   add_library(mga_runtime_compile STATIC ${MGA_RUNTIME_SRCS})
@@ -356,6 +422,17 @@ if(BUILD_TESTING)
     target_compile_options(mga_graphics_config_tests PRIVATE -Wall -Wextra)
   endif()
   add_test(NAME mga_graphics_config COMMAND mga_graphics_config_tests)
+
+  if(MGA_ENABLE_D3D12 OR MGA_ENABLE_VULKAN)
+    add_executable(mga_texture_scaler_tests EXCLUDE_FROM_ALL
+      ${PSP_RECOMP_DIR}/tools/tests/texture_scaler_test.cpp
+      ${RT}/texture_scaler.cpp
+      ${PSP_RECOMP_DIR}/third_party/xbrz/xbrz.cpp)
+    target_include_directories(mga_texture_scaler_tests PRIVATE "${RT}")
+    target_compile_features(mga_texture_scaler_tests PRIVATE cxx_std_17)
+    target_compile_options(mga_texture_scaler_tests PRIVATE ${MGA_FP_FLAGS})
+    add_test(NAME mga_texture_scaler COMMAND mga_texture_scaler_tests)
+  endif()
 
   add_executable(mga_interp_tests EXCLUDE_FROM_ALL
     ${PSP_RECOMP_DIR}/tools/tests/interp_fallback_test.cpp

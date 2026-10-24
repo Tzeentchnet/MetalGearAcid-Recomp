@@ -99,8 +99,11 @@ class InstallerTests(unittest.TestCase):
     def test_project_runtime_pin_is_complete(self):
         runtime = install.load_runtime_config(ROOT)
 
-        self.assertEqual(runtime.branch, "kzl")
-        self.assertRegex(runtime.commit, r"^[0-9a-f]{40}$")
+        self.assertEqual(runtime.branch, "main")
+        self.assertEqual(
+            runtime.commit,
+            "138c2b8bc96ac5ec7e4f7b4224b37b28b9375ee5",
+        )
         self.assertTrue(runtime.repository.endswith("/psp-recomp.git"))
 
     def test_archive_checkout_clones_configured_runtime(self):
@@ -147,10 +150,10 @@ class InstallerTests(unittest.TestCase):
 
         self.assertEqual(found, vcvars.resolve())
 
-    def test_creates_renderer_specific_cmake_commands(self):
+    def test_creates_combined_renderer_cmake_commands(self):
         sdl3 = self.root / "SDL3" / "cmake"
         configure, build = install.cmake_commands(
-            "d3d12",
+            "combined",
             "cmake.exe",
             sdl3,
         )
@@ -158,21 +161,41 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(configure[:3], [
             "cmake.exe",
             "--preset",
-            "clang-cl-d3d12",
+            "clang-cl",
         ])
         self.assertEqual(configure[3], f"-DSDL3_DIR={sdl3}")
         self.assertEqual(build[2:5], [
             "--preset",
-            "clang-cl-d3d12",
+            "clang-cl",
             "--target",
         ])
 
-    def test_requires_sdl3_for_hardware_renderer(self):
-        with self.assertRaisesRegex(
-            install.InstallError,
-            "requires an SDL3 development package",
-        ):
-            install.resolve_sdl3_dir("d3d12", None, {})
+    def test_uses_pinned_sdl3_when_no_override_is_supplied(self):
+        self.assertIsNone(install.resolve_sdl3_dir("combined", None, {}))
+
+    def test_default_installer_builds_combined_renderers(self):
+        args = install.parse_args(["disc.iso"])
+
+        self.assertEqual(args.renderer, "combined")
+
+    def test_software_only_alias_selects_software_preset(self):
+        args = install.parse_args(["disc.iso", "--software-only"])
+
+        self.assertEqual(args.renderer, "software")
+
+    def test_accepts_vulkan_sdk_with_required_x64_files(self):
+        sdk = self.root / "VulkanSDK"
+        header = sdk / "Include" / "vulkan" / "vulkan.h"
+        library = sdk / "Lib" / "vulkan-1.lib"
+        header.parent.mkdir(parents=True)
+        library.parent.mkdir(parents=True)
+        header.write_text("", encoding="ascii")
+        library.write_bytes(b"synthetic")
+
+        install.validate_renderer_environment(
+            "combined",
+            {"VULKAN_SDK": str(sdk)},
+        )
 
     def test_rejects_unparseable_cmake_version(self):
         with self.assertRaisesRegex(
@@ -198,7 +221,13 @@ class InstallerTests(unittest.TestCase):
         )
         iso = self.root / "disc.iso"
         iso.write_bytes(b"synthetic")
-        executable = self.root / "out" / "build" / "clang-cl" / "mga.exe"
+        executable = (
+            self.root
+            / "out"
+            / "build"
+            / "clang-cl-software"
+            / "mga.exe"
+        )
         runner = FakeRunner(
             self.root / "external" / "psp-recomp",
             "2" * 40,

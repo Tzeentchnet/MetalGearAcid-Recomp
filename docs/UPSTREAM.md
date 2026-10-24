@@ -14,11 +14,10 @@ Status values:
 - **Game config** - should remain title-specific rather than generic runtime
   behavior.
 
-The tested `kzl` development line through parent pin `66c18a5` has been merged
-into the maintained fork's `main` line. This parent identifies the runtime by
-exact commit rather than a moving branch. Its checkout metadata continues to
-name `kzl` until the published `main` ref contains that commit; this does not
-change the upstream status values below.
+The parent pins the maintained fork's `main` line at `138c2b8`, including the
+earlier `kzl` work through `66c18a5` and the shared hardware texture-scaling
+controls. The exact commit, rather than the moving branch, defines the tested
+runtime. This does not change the upstream status values below.
 
 ## Priority matrix
 
