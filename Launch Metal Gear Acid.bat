@@ -52,24 +52,24 @@ rem One folder for settings, saves and logs.
 if not defined SR_DATA_DIR set "SR_DATA_DIR=%LOCALAPPDATA%\Metal Gear Acid Recomp"
 if not exist "%SR_DATA_DIR%" mkdir "%SR_DATA_DIR%"
 
+set "MGA_COMBINED_EXE=%MGA_ROOT%out\build\clang-cl\mga.exe"
+set "MGA_SOFTWARE_EXE=%MGA_ROOT%out\build\clang-cl-software\mga.exe"
 set "MGA_D3D12_EXE=%MGA_ROOT%out\build\clang-cl-d3d12\mga.exe"
 set "MGA_VULKAN_EXE=%MGA_ROOT%out\build\clang-cl-vulkan\mga.exe"
-set "MGA_SOFTWARE_EXE=%MGA_ROOT%out\build\clang-cl\mga.exe"
 
 if defined MGA_RENDERER goto renderer_override
+rem The combined build reads its renderer from graphics.ini. Without it,
+rem a single dedicated build is used as is.
+if exist "%MGA_COMBINED_EXE%" goto select_default_build
+if not exist "%MGA_D3D12_EXE%" if not exist "%MGA_VULKAN_EXE%" goto select_default_build
+if not exist "%MGA_D3D12_EXE%" if not exist "%MGA_SOFTWARE_EXE%" goto select_default_build
+if not exist "%MGA_VULKAN_EXE%" if not exist "%MGA_SOFTWARE_EXE%" goto select_default_build
 
-if exist "%MGA_D3D12_EXE%" if not exist "%MGA_VULKAN_EXE%" if not exist "%MGA_SOFTWARE_EXE%" goto select_d3d12
-if not exist "%MGA_D3D12_EXE%" if exist "%MGA_VULKAN_EXE%" if not exist "%MGA_SOFTWARE_EXE%" goto select_vulkan
-if not exist "%MGA_D3D12_EXE%" if not exist "%MGA_VULKAN_EXE%" if exist "%MGA_SOFTWARE_EXE%" goto select_software
-
-if not exist "%MGA_D3D12_EXE%" if not exist "%MGA_VULKAN_EXE%" if not exist "%MGA_SOFTWARE_EXE%" goto missing_executable
-
-rem MGA_NONINTERACTIVE=1 (set by RecompLauncher) picks the best built
-rem renderer, skips the settings windows and never waits for a key.
+rem Several dedicated builds. MGA_NONINTERACTIVE=1 (set by RecompLauncher)
+rem picks the best one, skips the settings windows and never waits for a key.
 if "%MGA_NONINTERACTIVE%"=="1" (
-    if exist "%MGA_D3D12_EXE%" goto select_d3d12
-    if exist "%MGA_VULKAN_EXE%" goto select_vulkan
-    goto select_software
+    if exist "%MGA_D3D12_EXE%" (set "MGA_RENDERER=d3d12") else set "MGA_RENDERER=vulkan"
+    goto renderer_override
 )
 
 echo Select a renderer:
@@ -77,49 +77,96 @@ if exist "%MGA_D3D12_EXE%" (echo   [D] D3D12 ^(recommended^)) else (echo   [D] D
 if exist "%MGA_VULKAN_EXE%" (echo   [V] Vulkan) else (echo   [V] Vulkan ^(not built^))
 if exist "%MGA_SOFTWARE_EXE%" (echo   [S] Software / GDI reference) else (echo   [S] Software / GDI ^(not built^))
 choice /C DVS /N /M "Renderer [D/V/S]: "
-if errorlevel 3 goto select_software
-if errorlevel 2 goto select_vulkan
-goto select_d3d12
+set "MGA_RENDERER=d3d12"
+if errorlevel 2 set "MGA_RENDERER=vulkan"
+if errorlevel 3 set "MGA_RENDERER=software"
+goto renderer_override
 
 :renderer_override
-if /I "%MGA_RENDERER%"=="d3d12" goto select_d3d12
-if /I "%MGA_RENDERER%"=="vulkan" goto select_vulkan
-if /I "%MGA_RENDERER%"=="vk" goto select_vulkan
-if /I "%MGA_RENDERER%"=="software" goto select_software
-if /I "%MGA_RENDERER%"=="sw" goto select_software
-if /I "%MGA_RENDERER%"=="gdi" goto select_software
+if /I "%MGA_RENDERER%"=="d3d12" goto override_d3d12
+if /I "%MGA_RENDERER%"=="vulkan" goto override_vulkan
+if /I "%MGA_RENDERER%"=="vk" goto override_vulkan
+if /I "%MGA_RENDERER%"=="software" goto override_software
+if /I "%MGA_RENDERER%"=="sw" goto override_software
+if /I "%MGA_RENDERER%"=="gdi" goto override_software
 echo Invalid MGA_RENDERER value "%MGA_RENDERER%".
 echo Expected d3d12, vulkan, or software.
 call :pause_if_interactive
 exit /b 2
 
-:select_d3d12
-set "MGA_RENDERER=d3d12"
-set "MGA_RENDERER_NAME=D3D12"
-set "MGA_EXE=%MGA_D3D12_EXE%"
+:override_d3d12
+set "MGA_RENDERER_NAME=D3D12 override"
 set "SR_GPU=d3d12"
 set "SR_VIDEO="
-goto executable_ready
+goto select_requested_build
 
-:select_vulkan
-set "MGA_RENDERER=vulkan"
-set "MGA_RENDERER_NAME=Vulkan"
-set "MGA_EXE=%MGA_VULKAN_EXE%"
+:override_vulkan
+set "MGA_RENDERER_NAME=Vulkan override"
 set "SR_GPU=vk"
 set "SR_VIDEO="
-goto executable_ready
+goto select_requested_build
 
-:select_software
-set "MGA_RENDERER=software"
-set "MGA_RENDERER_NAME=Software / GDI"
-set "MGA_EXE=%MGA_SOFTWARE_EXE%"
+:override_software
+set "MGA_RENDERER_NAME=Software / GDI override"
 set "SR_GPU=sw"
 set "SR_VIDEO=gdi"
-goto executable_ready
+goto select_requested_build
+
+:select_requested_build
+if exist "%MGA_COMBINED_EXE%" (
+    set "MGA_EXE=%MGA_COMBINED_EXE%"
+    set "MGA_BUILD_NAME=combined"
+    goto executable_ready
+)
+if /I "%SR_GPU%"=="d3d12" if exist "%MGA_D3D12_EXE%" (
+    set "MGA_EXE=%MGA_D3D12_EXE%"
+    set "MGA_BUILD_NAME=D3D12-only"
+    goto executable_ready
+)
+if /I "%SR_GPU%"=="vk" if exist "%MGA_VULKAN_EXE%" (
+    set "MGA_EXE=%MGA_VULKAN_EXE%"
+    set "MGA_BUILD_NAME=Vulkan-only"
+    goto executable_ready
+)
+if /I "%SR_GPU%"=="sw" if exist "%MGA_SOFTWARE_EXE%" (
+    set "MGA_EXE=%MGA_SOFTWARE_EXE%"
+    set "MGA_BUILD_NAME=software-only"
+    goto executable_ready
+)
+goto missing_selected_renderer
+
+:select_default_build
+set "MGA_RENDERER_NAME=graphics.ini"
+if exist "%MGA_COMBINED_EXE%" (
+    set "MGA_EXE=%MGA_COMBINED_EXE%"
+    set "MGA_BUILD_NAME=combined"
+    goto executable_ready
+)
+if exist "%MGA_SOFTWARE_EXE%" (
+    set "MGA_EXE=%MGA_SOFTWARE_EXE%"
+    set "MGA_BUILD_NAME=software-only"
+    set "SR_GPU=sw"
+    set "SR_VIDEO=gdi"
+    goto executable_ready
+)
+if exist "%MGA_D3D12_EXE%" (
+    set "MGA_EXE=%MGA_D3D12_EXE%"
+    set "MGA_BUILD_NAME=D3D12-only"
+    set "SR_GPU=d3d12"
+    set "SR_VIDEO="
+    goto executable_ready
+)
+if exist "%MGA_VULKAN_EXE%" (
+    set "MGA_EXE=%MGA_VULKAN_EXE%"
+    set "MGA_BUILD_NAME=Vulkan-only"
+    set "SR_GPU=vk"
+    set "SR_VIDEO="
+    goto executable_ready
+)
+goto missing_executable
 
 :executable_ready
 
-if not exist "%MGA_EXE%" goto missing_selected_renderer
 if not exist "%MGA_IMAGE%" goto missing_image
 if not exist "%PSP_ISO%" goto missing_iso
 
@@ -127,6 +174,7 @@ call :migrate_old_data
 
 rem Not a parenthesized block: paths such as "(USA)" would end it early.
 if /I not "%MGA_LAUNCH_DRY_RUN%"=="1" goto launch
+echo Build: %MGA_BUILD_NAME%
 echo Renderer: %MGA_RENDERER_NAME%
 echo Executable: %MGA_EXE%
 echo ISO: %PSP_ISO%
@@ -137,6 +185,7 @@ echo SR_VIDEO=%SR_VIDEO%
 exit /b 0
 
 :launch
+echo Build: %MGA_BUILD_NAME%
 echo Renderer: %MGA_RENDERER_NAME%
 echo Settings, saves and logs: %SR_DATA_DIR%
 
@@ -171,16 +220,16 @@ for %%N in (graphics.ini input.ini) do (
 exit /b 0
 
 :missing_selected_renderer
-echo The selected %MGA_RENDERER_NAME% build was not found:
-echo %MGA_EXE%
-echo Build the matching mga_driver preset, or choose another renderer.
+echo The selected %MGA_RENDERER_NAME% build was not found.
+echo Build the combined clang-cl preset or the matching compatibility preset.
 call :pause_if_interactive
 exit /b 1
 
 :missing_executable
 echo Metal Gear Acid is not built.
 echo Run "Install Metal Gear Acid.bat", or build mga_driver with the
-echo clang-cl, clang-cl-d3d12, or clang-cl-vulkan preset.
+echo clang-cl (combined), clang-cl-software, clang-cl-d3d12, or
+echo clang-cl-vulkan preset.
 call :pause_if_interactive
 exit /b 1
 

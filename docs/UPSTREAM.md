@@ -14,6 +14,11 @@ Status values:
 - **Game config** - should remain title-specific rather than generic runtime
   behavior.
 
+The parent pins the maintained fork's `main` line at `138c2b8`, including the
+earlier `kzl` work through `66c18a5` and the shared hardware texture-scaling
+controls. The exact commit, rather than the moving branch, defines the tested
+runtime. This does not change the upstream status values below.
+
 ## Priority matrix
 
 | Priority | Work item | Findings | Status | Required upstream result |

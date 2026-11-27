@@ -3,7 +3,7 @@
 [runtime]
 repository = "https://github.com/Tzeentchnet/psp-recomp.git"
 branch = "main"
-commit = "66c18a57bef4a470751a5d56ab53acd9420f3fb0"
+commit = "25e56232260ff5c62de45589858419cdcae408be"
 
 [disc]
 id = "ULUS10006"

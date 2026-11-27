@@ -9,13 +9,21 @@ developed for the Killzone: Liberation recompilation.
 No game executable, generated game C, disc data, or other copyrighted game
 assets belong in this repository. You must supply your own supported USA disc.
 
+
+> [!NOTE]
+> **Why isn't there just an .exe to download?** Two reasons. First, safety:
+> please don't download random .exe files from the internet, even from
+> GitHub releases, including this one if it ever shows up! It's just good
+> practice to be careful about what you run on your computer. Second, it's
+> the law: this project doesn't own Metal Gear Acid, so it's not
+> allowed to hand out a ready-to-play build of the game. Instead, you build
+> the program yourself from this source code and combine it with a copy of
+> the game disc that you already legally own. That way nobody's copyrighted
+> game data ever leaves your own computer.
+
 ## Development status
 
-This project is under active development. The deterministic front end and
-selected gameplay routes work, but the full campaign, save creation and
-reload, movies, renderer parity, and long-run stability are not yet validated.
-Treat current builds as experimental. See the [project status](docs/STATUS.md)
-and [completion plan](docs/PLAN.md) for the current scope and release gates.
+This project is under active development. Treat current builds as experimental.
 
 ## Repository
 
@@ -29,8 +37,8 @@ git clone --recurse-submodules `
 ```
 
 The parent tracks the maintained `Tzeentchnet/psp-recomp` `main` branch and
-pins commit `66c18a5`. The legacy `kzl` branch remains available for
-compatibility.
+pins commit `25e5623` (tested fork commit `138c2b8` plus local runtime work).
+The legacy `kzl` branch remains available for compatibility.
 
 ## Documentation
 
@@ -51,7 +59,8 @@ compatibility.
 - Visual Studio 2022 Build Tools with clang-cl, MSVC libraries, and a Windows
   SDK (setup can install them)
 - SDL3 when enabling the D3D12 or Vulkan renderer (setup can download it)
-- Vulkan SDK when enabling the optional Vulkan renderer
+- Vulkan SDK for the combined build or the Vulkan renderer. A standard
+  `C:\VulkanSDK\<version>` install is detected automatically.
 
 ## Quick setup
 
@@ -77,12 +86,18 @@ python install.py "C:\path\to\Metal Gear Acid (USA).iso" `
   --renderer d3d12 --download-sdl3
 ```
 
+`--renderer combined` builds one executable with D3D12, Vulkan and software
+renderers, chosen in `graphics.ini`; it needs the Vulkan SDK. `--software-only`
+(or `--renderer software`) builds the dependency-light software/GDI renderer,
+which needs neither SDL3 nor the Vulkan SDK. `--renderer vulkan` builds the
+dedicated Vulkan renderer.
+
 `--install-build-tools` installs missing Build Tools without asking, and
-`--sdl3-dir "C:\path\to\SDL3\cmake"` uses an SDL3 package you already have.
-Use `--renderer vulkan` after installing the Vulkan SDK. The installer reports
-missing Git, CMake, Ninja, Visual Studio, Clang, or Windows SDK components
-with an actionable error. It also works from a source archive by cloning the
-exact runtime commit recorded in `config\mga.toml`.
+`--sdl3-dir "C:\path\to\SDL3\cmake"` uses an SDL3 package you already have;
+without either SDL3 option, CMake downloads its pinned SDL3 package. The
+installer reports missing Git, CMake, Ninja, Visual Studio, Clang, Vulkan SDK,
+or Windows SDK components with an actionable error. It also works from a source
+archive by cloning the exact runtime commit recorded in `config\mga.toml`.
 
 The disc can be an `.iso`, a `.cso` (CISO v1/v2), or a `.chd` made with
 `chdman createdvd`. Setup converts a CSO or CHD once to
@@ -153,40 +168,26 @@ Generate the relocated image, import map, function inventory, and split C:
 python tools\mga\gen.py
 ```
 
-From a Visual Studio x64 developer shell, build the software-renderer
-baseline:
+From a Visual Studio x64 developer shell, build the combined executable:
 
 ```powershell
 cmake --preset clang-cl
 cmake --build --preset clang-cl --target mga_driver
 ```
 
-The build copies required VFPU tables and fonts beside the executable.
+This builds D3D12, Vulkan, and software rendering into
+`out\build\clang-cl\mga.exe`. CMake downloads the pinned SDL3 package when
+needed and copies SDL3, required VFPU tables, and fonts beside the executable.
 
-For the recommended high-performance renderer, install an SDL3 development
-package and build the dedicated preset:
-
-```powershell
-cmake --preset clang-cl-d3d12 `
-  -DSDL3_DIR="C:\path\to\SDL3\cmake"
-cmake --build --preset clang-cl-d3d12 --target mga_driver
-```
-
-Run `out\build\clang-cl-d3d12\mga.exe` with `SR_GPU=d3d12`. Keep the
-`clang-cl` software build for pixel-exact reference captures.
-
-For the Vulkan GE renderer, install the Vulkan SDK and configure its dedicated
-preset with the same SDL3 package:
+The deterministic software-only baseline remains available separately:
 
 ```powershell
-cmake --preset clang-cl-vulkan `
-  -DSDL3_DIR="C:\path\to\SDL3\cmake"
-cmake --build --preset clang-cl-vulkan --target mga_driver
+cmake --preset clang-cl-software
+cmake --build --preset clang-cl-software --target mga_driver
 ```
 
-Run `out\build\clang-cl-vulkan\mga.exe` with `SR_GPU=vk`. To use the Vulkan
-window/presenter with the pixel-exact software GE instead, set `SR_GPU=sw` in
-that build. The Vulkan build requires a working Vulkan 1.1-capable driver.
+The `clang-cl-d3d12` and `clang-cl-vulkan` presets remain available for
+backend-isolated diagnostics.
 
 D3D12 and Vulkan use PSP-quantized nearest/bilinear texture sampling and
 integer texture-function/fog math by default. Set `SR_GPU_PSP_SAMPLER=0` only
@@ -201,20 +202,20 @@ out\build\clang-cl\mga.exe --boot `
   build\mga\gen\mga_image.bin 08804000 0880432c none --gui
 ```
 
-The baseline build uses the Win32 GDI presenter. Select it explicitly with
-`SR_GPU=sw` and `SR_VIDEO=gdi`.
+For a local Windows checkout, double-click `Launch Metal Gear Acid.bat`. The
+launcher prefers the combined build, opens the Metal Gear Acid graphics and
+controller settings, and starts the executable with the persisted renderer
+choice. It falls back to software-only or dedicated compatibility builds when
+needed. Set `MGA_RENDERER=d3d12`, `MGA_RENDERER=vulkan`, or
+`MGA_RENDERER=software` only when an environment override is useful for
+automation.
 
-For a local Windows checkout, double-click `Launch Metal Gear Acid.bat`.
-When multiple builds are available, the launcher prompts for D3D12
-(recommended), Vulkan, or the software/GDI reference renderer. If only one
-renderer build exists, it is selected automatically. Set
-`MGA_RENDERER=d3d12`, `MGA_RENDERER=vulkan`, or
-`MGA_RENDERER=software` before launching to skip the prompt.
-
-The launcher opens the Metal Gear Acid graphics and controller settings, then
-starts the selected executable with the matching renderer override. It first
-uses `--game`, then `PSP_ISO` when set, then the ISO path saved by the
-installer, and finally `Metal Gear Acid (USA)\Metal Gear Acid (USA).iso`.
+When only separate D3D12, Vulkan, or software builds exist and there is more
+than one, the launcher prompts for D3D12 (recommended), Vulkan, or the
+software/GDI reference renderer; RecompLauncher (`MGA_NONINTERACTIVE=1`) picks
+the best one without asking. The launcher first uses `--game`, then `PSP_ISO`
+when set, then the disc path saved by the installer, and finally
+`Metal Gear Acid (USA)\Metal Gear Acid (USA).iso`.
 
 The first GUI run creates `graphics.ini` and `input.ini` in the data folder
 (see [Settings, saves and logs](#settings-saves-and-logs)) and opens
@@ -224,6 +225,39 @@ directory's `memstick\`, as before. Metal Gear Acid exposes standard PSP
 button bindings without the Killzone-specific twin-stick controls. The runtime
 uses its conservative one-million-instruction fallback cap; override it only
 for diagnostics with `SR_INTERP_MAX_STEPS`.
+
+### Graphics quality
+
+The combined build offers **Automatic**, **D3D12 hardware**,
+**Software reference**, and **Vulkan**. Automatic selects D3D12 when it is
+compiled in.
+
+For the highest-quality 4K path:
+
+1. Select **D3D12 hardware**.
+2. Select **8x (3840x2176)** internal resolution.
+3. Select **2x xBRZ** or **3x xBRZ** texture upscaling.
+4. Select **Full resolution (best quality)** D3D12 shading.
+5. Press **F11** in the game window for borderless desktop fullscreen.
+
+The PSP display is 480:272, so 8x is 3840x2176 rather than exactly 3840x2160.
+Presentation preserves that aspect ratio and letterboxes instead of stretching
+the image.
+
+| Renderer | Internal GE resolution | Texture scaling | Role |
+|---|---|---|---|
+| D3D12 | 1x-8x | 1x-5x xBRZ | Recommended high-resolution renderer |
+| Vulkan | Native 512x272 target | 1x-5x xBRZ | Alternate hardware renderer |
+| Software | Native PSP resolution | None | Pixel-exact reference baseline |
+
+xBRZ scales decoded game textures before hardware upload. It does not scale
+framebuffer/render-target textures, and higher factors can use substantially
+more GPU memory. D3D12 **Balanced** shading uses variable-rate shading on
+supported GPUs; **Full resolution** shades every internal-resolution fragment.
+
+Settings are persisted in `graphics.ini` beside the executable. The equivalent
+keys are `renderer`, `internal_resolution`, `texture_scale`, and
+`d3d12_full_rate`.
 
 ### Using existing PSP saves
 

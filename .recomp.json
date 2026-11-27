@@ -1,0 +1,32 @@
+{
+  "$schema": "https://recomp.fyi/schema/v1.json",
+  "game": "Metal Gear Acid",
+  "system": "PSP",
+  "type": "recomp",
+  "original": {
+    "region": "USA",
+    "revision": "1.00",
+    "serial": "ULUS-10006",
+    "sha1": "d29eaba896be28c2575ead246bdaa3a9712929d4"
+  },
+  "project": "Metal Gear Acid Recomp",
+  "status": "in-progress",
+  "targets": [
+    "Windows"
+  ],
+  "toolchain": "psp-recomp",
+  "approach": "Static recompilation of PSP Allegrex code with a native HLE runtime and D3D12, Vulkan, or software rendering.",
+  "maintainers": [
+    {
+      "name": "Tzeentchnet",
+      "link": "https://github.com/Tzeentchnet"
+    }
+  ],
+  "links": [
+    {
+      "label": "Project status",
+      "url": "https://github.com/Tzeentchnet/MetalGearAcid-Recomp/blob/master/docs/STATUS.md"
+    }
+  ],
+  "notes": "Deterministic native routes reach a playable prologue hand and post-Forest Stage 01 content; full campaign, save creation, media, and long-soak validation remain open."
+}
