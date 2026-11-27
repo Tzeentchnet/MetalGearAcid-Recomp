@@ -11,7 +11,7 @@ framework.
 - Maintained runtime fork:
   [Tzeentchnet/psp-recomp](https://github.com/Tzeentchnet/psp-recomp)
 - Pinned runtime branch: `main`
-- Pinned runtime commit: `25e5623`
+- Pinned runtime commit: `9b45870`
 
 The public repository is source-only. Game data, generated code, saves, logs,
 traces, dumps, and captures remain untracked.

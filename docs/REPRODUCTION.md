@@ -18,8 +18,9 @@ sections 1-3, and ISO-path configuration for the launcher. The explicit
 commands below remain authoritative for reproducible validation and release
 evidence.
 
-The parent currently pins `25e5623`, which merges tested fork commit `138c2b8`
-with local runtime work (log file, window mode, data-folder settings path).
+The parent currently pins `9b45870`, which merges tested fork commit `138c2b8`
+with local runtime work (log file, window mode, data-folder settings path)
+and the log exit-hang fix.
 The relevant sequence is:
 
 - `e2dbc91` - runtime PRX modules and synthetic runtime tests;

@@ -11,7 +11,7 @@ Validated through 2026-10-22 against:
   sal063 toolkit;
 - Windows x64, clang-cl 19.1.5, CMake, and Ninja.
 
-The current parent pin is `25e5623`, which merges `138c2b8` with local runtime
+The current parent pin is `9b45870`, which merges `138c2b8` with local runtime
 work (log file, window mode, data-folder settings path). The `138c2b8`
 renderer-only successor changes were validated on 2026-10-24 with the
 graphics-config, texture-scaler, D3D12 vertex, and combined-build checks; the
