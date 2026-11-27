@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test the installer and disc tools
+        run: python -m unittest discover -s tools/tests -p "test_mga_*.py"
+
+      - name: Package
+        run: python tools/package_release.py --version "${{ github.ref_name }}" --out dist
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          $zip = Get-ChildItem dist\*.zip | Select-Object -First 1
+          gh release view $env:TAG *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:TAG $zip.FullName --clobber
+          } else {
+            $flags = @("--generate-notes", "--title", "Metal Gear Acid Recomp $env:TAG")
+            if ($env:TAG -match "-") { $flags += "--prerelease" }
+            gh release create $env:TAG $zip.FullName @flags
+          }
+          exit $LASTEXITCODE

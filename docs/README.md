@@ -10,6 +10,7 @@ framework.
   [Tzeentchnet/MetalGearAcid-Recomp](https://github.com/Tzeentchnet/MetalGearAcid-Recomp)
 - Maintained runtime fork:
   [Tzeentchnet/psp-recomp](https://github.com/Tzeentchnet/psp-recomp)
+- Pinned runtime branch: `main`
 - Pinned runtime commit: `66c18a5`
 
 The public repository is source-only. Game data, generated code, saves, logs,

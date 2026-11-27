@@ -18,7 +18,7 @@ sections 1-3, and ISO-path configuration for the launcher. The explicit
 commands below remain authoritative for reproducible validation and release
 evidence.
 
-The parent currently pins tested fork tip `66c18a5`. The relevant sequence is:
+The parent currently pins tested `main` tip `66c18a5`. The relevant sequence is:
 
 - `e2dbc91` - runtime PRX modules and synthetic runtime tests;
 - `9683b44` - runtime import patches and initial VFPU7 codegen;

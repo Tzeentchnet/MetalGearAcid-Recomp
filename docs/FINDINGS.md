@@ -7,7 +7,8 @@ Validated through 2026-10-22 against:
 
 - Metal Gear Acid USA, `ULUS-10006`, disc version `1.00`;
 - PPSSPP `v1.20.4`, interpreter mode;
-- the `Tzeentchnet/psp-recomp` `kzl` branch based on the sal063 toolkit;
+- the maintained `Tzeentchnet/psp-recomp` `main` branch based on the sal063
+  toolkit;
 - Windows x64, clang-cl 19.1.5, CMake, and Ninja.
 
 ## Disc and executable
@@ -1392,6 +1393,28 @@ marker, and left their empty fixtures unchanged. This establishes NEW GAME
 entry and initial default-deck setup. It does not yet validate deliberate
 movement, camera, card selection, action execution, pause, cancel/confirm,
 combat, or saving.
+
+### MGA-F-062 - Exact function reuse covers the configured native module set
+
+The verified USA v1.00 main module and all eight configured native modules
+were generated with the shared exact cache using their real bases, symbol
+prefixes, computed entry, runtime-JAL, and live-code-verification options.
+The first pass emitted 16,541 functions with no trapping stubs and wrote
+16,287 new entries; one exact two-instruction main-module context at
+`0x088a6ba8` was safely reused from Killzone. The unchanged rerun reported
+16,288 hits, zero misses, and zero writes while preserving all generated
+content hashes and modification times.
+
+A temporary catalog made from Killzone's 37 previously reviewed PPSSPP
+identities found five normalized Metal Gear Acid candidates:
+`__extendsfdf2`, `__adddf3`, `__subdf3`, `__muldf3`, and `__negdf2`. None was
+an exact variant, and none authorized generated-code reuse.
+
+All cached main and native-module translation units compiled into nine static
+libraries with clang-cl 19.1.5, and the full `mga.exe` driver linked. The
+temporary catalog lacked the original PPSSPP source revision required for
+publication, so it remains local validation evidence rather than a public
+catalog update.
 
 ## Ranked improvement opportunities
 

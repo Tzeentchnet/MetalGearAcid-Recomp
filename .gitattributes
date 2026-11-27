@@ -8,3 +8,4 @@
 *.iso binary
 *.prx binary
 *.bin binary
+*.bat text eol=crlf

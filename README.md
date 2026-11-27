@@ -1,5 +1,7 @@
 # Metal Gear Acid Recomp
 
+<a href="https://recomplauncher.com"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></picture></a>
+
 Source-only Windows static recompilation of **Metal Gear Acid
 (ULUS-10006 v1.00)**. The project uses the PSP static recompiler/runtime fork
 developed for the Killzone: Liberation recompilation.
@@ -26,8 +28,9 @@ git clone --recurse-submodules `
   https://github.com/Tzeentchnet/MetalGearAcid-Recomp.git
 ```
 
-The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
-`66c18a5`.
+The parent tracks the maintained `Tzeentchnet/psp-recomp` `main` branch and
+pins commit `66c18a5`. The legacy `kzl` branch remains available for
+compatibility.
 
 ## Documentation
 
@@ -41,44 +44,94 @@ The parent currently pins `Tzeentchnet/psp-recomp` branch `kzl` at commit
 ## Requirements
 
 - Windows 10/11 x64
-- Git with submodule support
-- Python 3.11 or newer
-- CMake 3.25 or newer and Ninja
+- Git with submodule support (not needed for a release zip)
+- Python 3.11 or newer (setup can install it with winget)
+- CMake 3.25 or newer and Ninja (included with the Build Tools' C++ CMake
+  tools)
 - Visual Studio 2022 Build Tools with clang-cl, MSVC libraries, and a Windows
-  SDK
-- SDL3 when enabling the optional D3D12 or Vulkan renderer
+  SDK (setup can install them)
+- SDL3 when enabling the D3D12 or Vulkan renderer (setup can download it)
 - Vulkan SDK when enabling the optional Vulkan renderer
 
 ## Quick setup
 
-The guided installer verifies the ISO, downloads or initializes the pinned
-runtime fork, extracts the required files, generates native sources, detects
-the Visual Studio build environment, builds the selected renderer, and
-remembers the ISO location for the launcher.
+The guided installer verifies the disc image, downloads or initializes the
+pinned runtime fork, extracts the required files, generates native sources,
+detects the Visual Studio build environment, builds the selected renderer, and
+remembers the disc location for the launcher.
 
-For the dependency-light software/GDI build, double-click
-`Install Metal Gear Acid.bat` and enter the ISO path when prompted. The same
-setup can be run from a terminal:
+Double-click `Install Metal Gear Acid.bat` and enter the disc path when
+prompted. Setup offers to:
 
-```powershell
-python install.py "C:\path\to\Metal Gear Acid (USA).iso"
-```
+- install Python 3.13 with winget when no Python 3.11+ is found;
+- install Visual Studio 2022 Build Tools with the C++ Clang tools when they
+  are missing (several gigabytes; you accept Microsoft's license terms);
+- build the recommended D3D12 renderer, downloading the pinned SDL3 3.4.20
+  development package from GitHub and checking its SHA-256. Answer `n` for
+  the software renderer, which needs no SDL3.
 
-The default software build does not require SDL3. For the recommended D3D12
-renderer, install an SDL3 development package and run:
+The same setup runs from a terminal:
 
 ```powershell
 python install.py "C:\path\to\Metal Gear Acid (USA).iso" `
-  --renderer d3d12 `
-  --sdl3-dir "C:\path\to\SDL3\cmake"
+  --renderer d3d12 --download-sdl3
 ```
 
-Use `--renderer vulkan` with the same SDL3 option after installing the Vulkan
-SDK. The installer reports missing Git, CMake, Ninja, Visual Studio, Clang, or
-Windows SDK components with an actionable error. It also works from a source
-archive by cloning the exact runtime commit recorded in `config\mga.toml`.
+`--install-build-tools` installs missing Build Tools without asking, and
+`--sdl3-dir "C:\path\to\SDL3\cmake"` uses an SDL3 package you already have.
+Use `--renderer vulkan` after installing the Vulkan SDK. The installer reports
+missing Git, CMake, Ninja, Visual Studio, Clang, or Windows SDK components
+with an actionable error. It also works from a source archive by cloning the
+exact runtime commit recorded in `config\mga.toml`.
 
-When setup completes, double-click `Launch Metal Gear Acid.bat`.
+The disc can be an `.iso`, a `.cso` (CISO v1/v2), or a `.chd` made with
+`chdman createdvd`. Setup converts a CSO or CHD once to
+`build\mga\disc\Metal Gear Acid (USA).iso`, checking every CHD hunk and the
+image's SHA-1, and the game runs from that copy.
+
+Running setup again is quick: `build\mga\install_stamp.json` records what was
+extracted, generated and built, and steps whose inputs are unchanged are
+skipped. Pass `--force` to redo everything.
+
+When setup completes, double-click `Launch Metal Gear Acid.bat`. It takes
+`--game "C:\path\to\disc.iso"` for shortcuts and scripts, and
+`--data-dir "C:\path"` to keep settings and saves elsewhere; other arguments,
+such as `--fullscreen`, go to the game.
+
+### Settings, saves and logs
+
+Settings (`graphics.ini`, `input.ini`), saves (`memstick\PSP\SAVEDATA`) and
+logs (`logs\mga.log`, with `mga.previous.log` from the run before) share one
+data folder: `%LOCALAPPDATA%\Metal Gear Acid Recomp` by default, or the folder
+in `SR_DATA_DIR` / `--data-dir`. The first launch copies settings and saves
+from the locations older versions used (beside `mga.exe` and the repository's
+`memstick\`); the originals stay where they were. `SR_SETTINGS_DIR`,
+`SR_MEMSTICK` and `SR_LOG_FILE` still override single locations, and `SR_LOG=0`
+turns the log off.
+
+F11 switches between a window and full screen. `--fullscreen` starts full
+screen, as does RecompLauncher's Big Picture mode
+(`RECOMPLAUNCHER_MODE=bigpicture`).
+
+### RecompLauncher
+
+Each release zip carries a `recomplauncher.json`, so
+[RecompLauncher](https://recomplauncher.com) can set the game up: pick your
+USA `.iso`, `.cso` or `.chd`, and the launcher runs
+`Install Metal Gear Acid.bat --prepare <disc>`. Two setup ticks map to
+installer options: **Build the D3D12 renderer** (on by default;
+`--renderer d3d12 --download-sdl3`) and **Install the build tools if they are
+missing** (off until the player accepts Microsoft's license;
+`--install-build-tools`). The launcher starts `Launch Metal Gear Acid.bat
+--game <disc>` without its settings windows (`MGA_NONINTERACTIVE=1`) and with
+`SR_DATA_DIR` set to the game's data folder, so settings, saves and logs live
+there. The launcher's settings page exposes the internal resolution, full
+screen, and the keyboard and controller bindings in `input.ini`; its Logs
+action opens the log folder.
+
+Releases are made by pushing a `v*` tag: `.github/workflows/release.yml` runs
+`tools\package_release.py`, which zips the tracked sources and the pinned
+runtime into `MetalGearAcid-Recomp-<tag>-Windows-x64.zip`.
 
 ### Manual setup
 
@@ -160,11 +213,14 @@ renderer build exists, it is selected automatically. Set
 
 The launcher opens the Metal Gear Acid graphics and controller settings, then
 starts the selected executable with the matching renderer override. It first
-uses `PSP_ISO` when set, then the ISO path saved by the installer, and finally
-`Metal Gear Acid (USA)\Metal Gear Acid (USA).iso`.
+uses `--game`, then `PSP_ISO` when set, then the ISO path saved by the
+installer, and finally `Metal Gear Acid (USA)\Metal Gear Acid (USA).iso`.
 
-The first GUI run creates portable `graphics.ini` and `input.ini` beside the
-executable and opens controller setup. Metal Gear Acid exposes standard PSP
+The first GUI run creates `graphics.ini` and `input.ini` in the data folder
+(see [Settings, saves and logs](#settings-saves-and-logs)) and opens
+controller setup. Run `mga.exe` directly without `SR_DATA_DIR` or
+`--data-dir` and they stay beside the executable, with saves in the working
+directory's `memstick\`, as before. Metal Gear Acid exposes standard PSP
 button bindings without the Killzone-specific twin-stick controls. The runtime
 uses its conservative one-million-instruction fallback cap; override it only
 for diagnostics with `SR_INTERP_MAX_STEPS`.
@@ -172,11 +228,14 @@ for diagnostics with `SR_INTERP_MAX_STEPS`.
 ### Using existing PSP saves
 
 Close the game, then copy the complete Metal Gear Acid save folder from the
-PSP Memory Stick's `PSP\SAVEDATA\` directory into:
+PSP Memory Stick's `PSP\SAVEDATA\` directory into the data folder's:
 
 ```text
 memstick\PSP\SAVEDATA\
 ```
+
+That is `%LOCALAPPDATA%\Metal Gear Acid Recomp\memstick\PSP\SAVEDATA\` by
+default; RecompLauncher's **Saves** action opens it.
 
 Keep the save folder and all files inside it together. Supported USA saves use
 folder names beginning with `ULUS10006`; do not rename another region's save
@@ -184,9 +243,9 @@ to that prefix. For example, a folder named `ULUS10006002` must end up at
 `memstick\PSP\SAVEDATA\ULUS10006002\`. It appears under **LOAD GAME**, not
 necessarily **CONTINUE**.
 
-The launcher uses the repository's `memstick\` directory by default. To keep
-saves elsewhere, set `SR_MEMSTICK` to an alternate Memory Stick root that
-contains `PSP\SAVEDATA\` before starting the launcher. Back up the original
+To keep saves elsewhere, pass `--data-dir`, or set `SR_MEMSTICK` to an
+alternate Memory Stick root that contains `PSP\SAVEDATA\` before starting the
+launcher. Back up the original
 save before copying or testing it. See
 [Isolated memstick fixtures](docs/REPRODUCTION.md#7-isolated-memstick-fixtures)
 for verified copy and validation commands.

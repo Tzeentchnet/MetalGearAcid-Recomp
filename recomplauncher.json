@@ -1,0 +1,160 @@
+{
+  "$schema": "https://recomplauncher.com/schema/recomplauncher.json",
+  "format": 1,
+  "name": "Metal Gear Acid Recomp",
+  "repo": "Tzeentchnet/MetalGearAcid-Recomp",
+  "inputs": [
+    {
+      "id": "game",
+      "label": "Your disc image (.iso, .cso or .chd) of the USA PSP release, ULUS-10006 v1.00.",
+      "formats": [{ "type": "file", "extensions": ["iso", "cso", "chd"] }],
+      "dumps": [
+        { "name": "USA (v1.00)", "size": 201392128, "crc32": "088b4aa7" }
+      ]
+    }
+  ],
+  "prepare": {
+    "program": ["Install Metal Gear Acid.bat"],
+    "args": ["--prepare", "{input:game}"],
+    "label": "Builds the game from your disc. Needs Python 3.11 or newer and Visual Studio 2022 Build Tools with the C++ Clang tools; setup can install them for you.",
+    "options": [
+      {
+        "id": "d3d12",
+        "label": "Build the D3D12 renderer (recommended)",
+        "note": "Downloads SDL3 3.4.20 (about 17 MB) from GitHub. Untick to build the software renderer instead.",
+        "args": ["--renderer", "d3d12", "--download-sdl3"],
+        "default": true
+      },
+      {
+        "id": "build_tools",
+        "label": "Install the build tools if they are missing",
+        "note": "Installs Python 3.13 with winget and Visual Studio 2022 Build Tools with the C++ Clang tools, several gigabytes. Windows asks for permission.",
+        "args": ["--install-build-tools"],
+        "os": ["windows"],
+        "license": {
+          "name": "Microsoft Visual Studio 2022 Build Tools license terms",
+          "url": "https://visualstudio.microsoft.com/license-terms/"
+        }
+      }
+    ],
+    "done": [
+      "{install}/build/mga/install_stamp.json",
+      "{install}/build/mga/gen/mga_image.bin"
+    ]
+  },
+  "start": {
+    "program": ["Launch Metal Gear Acid.bat"],
+    "args": ["--game", "{input:game}"],
+    "env": {
+      "MGA_NONINTERACTIVE": "1",
+      "SR_DATA_DIR": "{data}"
+    }
+  },
+  "config": [
+    {
+      "id": "main",
+      "format": "ini",
+      "file": [{ "path": "{data}/graphics.ini" }],
+      "new": { "renderer": "d3d12", "internal_resolution": "2" }
+    },
+    {
+      "id": "input",
+      "format": "ini",
+      "file": [{ "path": "{data}/input.ini" }]
+    }
+  ],
+  "settings": [
+    {
+      "id": "internal_resolution",
+      "label": "Internal Resolution",
+      "group": "Graphics",
+      "help": "How sharp the D3D12 and Vulkan renderers draw. 1x is the PSP's own 480x272; the software renderer always draws at 1x.",
+      "choices": [
+        { "label": "1x (PSP)", "set": { "internal_resolution": "1" } },
+        { "label": "2x", "set": { "internal_resolution": "2" } },
+        { "label": "3x", "set": { "internal_resolution": "3" } },
+        { "label": "4x", "set": { "internal_resolution": "4" } },
+        { "label": "6x", "set": { "internal_resolution": "6" } },
+        { "label": "8x", "set": { "internal_resolution": "8" } }
+      ],
+      "defaults": { "internal_resolution": "2" }
+    },
+    {
+      "id": "display",
+      "label": "Display",
+      "group": "Graphics",
+      "in": "args",
+      "help": "Big Picture mode always starts full screen. F11 switches while playing.",
+      "choices": [
+        { "label": "Window", "args": [] },
+        { "label": "Full screen", "args": ["--fullscreen"] }
+      ]
+    },
+    {
+      "id": "keyboard",
+      "label": "Keyboard",
+      "group": "Controls",
+      "in": "input",
+      "help": "Keys for each PSP button. The analog stick keys move the PSP's stick.",
+      "bindings": {
+        "separator": ", ",
+        "max": 4,
+        "actions": [
+          { "label": "D-pad Up", "key": "keyboard.up" },
+          { "label": "D-pad Down", "key": "keyboard.down" },
+          { "label": "D-pad Left", "key": "keyboard.left" },
+          { "label": "D-pad Right", "key": "keyboard.right" },
+          { "label": "Analog Up", "key": "keyboard.analog_up" },
+          { "label": "Analog Down", "key": "keyboard.analog_down" },
+          { "label": "Analog Left", "key": "keyboard.analog_left" },
+          { "label": "Analog Right", "key": "keyboard.analog_right" },
+          { "label": "Cross", "key": "keyboard.cross" },
+          { "label": "Circle", "key": "keyboard.circle" },
+          { "label": "Square", "key": "keyboard.square" },
+          { "label": "Triangle", "key": "keyboard.triangle" },
+          { "label": "L", "key": "keyboard.l" },
+          { "label": "R", "key": "keyboard.r" },
+          { "label": "Start", "key": "keyboard.start" },
+          { "label": "Select", "key": "keyboard.select" }
+        ]
+      }
+    },
+    {
+      "id": "controller",
+      "label": "Controller",
+      "group": "Controls",
+      "in": "input",
+      "help": "Controller buttons for each PSP button. The left stick is always the PSP's analog stick.",
+      "bindings": {
+        "separator": ", ",
+        "max": 4,
+        "actions": [
+          { "label": "D-pad Up", "key": "gamepad.up", "pad": true },
+          { "label": "D-pad Down", "key": "gamepad.down", "pad": true },
+          { "label": "D-pad Left", "key": "gamepad.left", "pad": true },
+          { "label": "D-pad Right", "key": "gamepad.right", "pad": true },
+          { "label": "Cross", "key": "gamepad.cross", "pad": true },
+          { "label": "Circle", "key": "gamepad.circle", "pad": true },
+          { "label": "Square", "key": "gamepad.square", "pad": true },
+          { "label": "Triangle", "key": "gamepad.triangle", "pad": true },
+          { "label": "L", "key": "gamepad.l", "pad": true },
+          { "label": "R", "key": "gamepad.r", "pad": true },
+          { "label": "Start", "key": "gamepad.start", "pad": true },
+          { "label": "Select", "key": "gamepad.select", "pad": true }
+        ]
+      }
+    }
+  ],
+  "saves": ["{data}/memstick/PSP/SAVEDATA"],
+  "folders": {
+    "saves": [{ "path": "{data}/memstick/PSP/SAVEDATA" }],
+    "logs": [{ "path": "{data}/logs" }]
+  },
+  "actions": [
+    { "id": "saves", "label": "Saves", "help": "Your Memory Stick saves. Copy a ULUS10006 save folder from a PSP here.", "open": "saves" },
+    { "id": "logs", "label": "Logs", "help": "mga.log from the last run and mga.previous.log from the one before. Attach them to a crash report.", "open": "logs" }
+  ],
+  "system": {
+    "windows": { "version": "10" }
+  }
+}

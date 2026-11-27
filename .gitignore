@@ -3,6 +3,8 @@
 *.ISO
 *.cso
 *.CSO
+*.chd
+*.CHD
 *.pbp
 *.PBP
 *.prx

@@ -168,6 +168,7 @@ set(MGA_RUNTIME_SRCS
   ${RT}/pgf.c
   ${RT}/gui.c
   ${RT}/settings_path.c
+  ${RT}/log_file.c
   ${RT}/graphics_config.c
   ${RT}/graphics_settings.c
   ${RT}/input_config.c

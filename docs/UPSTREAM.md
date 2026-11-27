@@ -7,8 +7,8 @@ internally.
 Status values:
 
 - **Local** - implemented in this worktree but not yet upstreamed.
-- **Fork commit** - committed and pushed to the public maintained
-  `Tzeentchnet/psp-recomp` `kzl` branch, but not yet reviewed or accepted by
+- **Fork commit** - committed on the public maintained
+  `Tzeentchnet/psp-recomp` `main` branch, but not yet reviewed or accepted by
   the original upstream project.
 - **Proposed** - design or fidelity work still required.
 - **Game config** - should remain title-specific rather than generic runtime
