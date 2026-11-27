@@ -11,8 +11,11 @@ Validated through 2026-10-22 against:
   sal063 toolkit;
 - Windows x64, clang-cl 19.1.5, CMake, and Ninja.
 
-The current parent pin is `9b45870`, which merges `138c2b8` with local runtime
-work (log file, window mode, data-folder settings path). The `138c2b8`
+The current parent pin is `20c15cf`: runtime `main` at `efbfc4c` plus a Windows
+Vulkan build fix and an input-config test fix. On 2026-11-26 it passed the
+combined D3D12 + Vulkan + software build and all nine CMake runtime tests. The
+previous pin was `9b45870`, which merged `138c2b8` with local runtime work (log
+file, window mode, data-folder settings path). The `138c2b8`
 renderer-only successor changes were validated on 2026-10-24 with the
 graphics-config, texture-scaler, D3D12 vertex, and combined-build checks; the
 historical route evidence below remains tied to `66c18a5` unless a finding says

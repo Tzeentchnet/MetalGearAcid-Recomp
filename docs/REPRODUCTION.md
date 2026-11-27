@@ -18,9 +18,10 @@ sections 1-3, and ISO-path configuration for the launcher. The explicit
 commands below remain authoritative for reproducible validation and release
 evidence.
 
-The parent currently pins `9b45870`, which merges tested fork commit `138c2b8`
-with local runtime work (log file, window mode, data-folder settings path)
-and the log exit-hang fix.
+The parent currently pins `20c15cf`: runtime `main` at `efbfc4c` plus a
+Windows Vulkan build fix and an input-config test fix. Before that it pinned
+`9b45870`, which merged tested fork commit `138c2b8` with local runtime work
+(log file, window mode, data-folder settings path) and the log exit-hang fix.
 The relevant sequence is:
 
 - `e2dbc91` - runtime PRX modules and synthetic runtime tests;

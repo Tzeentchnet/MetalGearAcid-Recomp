@@ -211,6 +211,10 @@ set(MGA_RUNTIME_SRCS
   ${RT}/dispatch_table.c
   ${RT}/fpu_mode.c
   ${RT}/fps_counter.c
+  ${RT}/platform.c
+  ${RT}/perf_stats.c
+  ${RT}/display_state.c
+  ${RT}/host_lifecycle.c
   ${RT}/interp_runtime.cpp
   ${PSP_RECOMP_DIR}/src/ref/interp.cpp
   ${RT}/module.c
@@ -231,8 +235,10 @@ set(MGA_RUNTIME_SRCS
   ${RT}/settings_path.c
   ${RT}/log_file.c
   ${RT}/graphics_config.c
+  ${RT}/graphics_auto.c
   ${RT}/graphics_settings.c
   ${RT}/input_config.c
+  ${RT}/input_script.c
   ${RT}/input_settings.c
   ${RT}/kzl_twinstick.c
   ${RT}/startup_check.c
@@ -240,6 +246,7 @@ set(MGA_RUNTIME_SRCS
   ${RT}/audio_xaudio2.cpp
   ${RT}/sas_reverb.c
   ${RT}/h264_mf.c
+  ${RT}/h264_psmf.c
   ${RT}/savedata.c
   ${RT}/osk_win.c
   ${RT}/ge.c)
@@ -253,6 +260,7 @@ if(MGA_ENABLE_D3D12)
     ${RT}/gpu_d3d12/present.cpp
     ${RT}/gpu_d3d12/present_layout.cpp
     ${RT}/gpu_d3d12/shader_state.cpp
+    ${RT}/gpu_d3d12/smaa.cpp
     ${RT}/gpu_d3d12/texture.cpp
     ${RT}/gpu_d3d12/texture_key.cpp
     ${RT}/gpu_d3d12/vertex.cpp)
@@ -260,7 +268,11 @@ endif()
 if(MGA_ENABLE_VULKAN)
   list(APPEND MGA_RUNTIME_SRCS
     ${RT}/gpu_sdl3vk/sdl3vk.c
-    ${RT}/gpu_sdl3vk/ge_gpu.c)
+    ${RT}/gpu_sdl3vk/ge_gpu.c
+    ${RT}/gpu_sdl3vk/pipeline_cache_vk.c
+    ${RT}/gpu_sdl3vk/present_layout.c
+    ${RT}/gpu_sdl3vk/shader_state.c
+    ${RT}/gpu_sdl3vk/smaa_vk.c)
 endif()
 if(MGA_ENABLE_D3D12 OR MGA_ENABLE_VULKAN)
   list(APPEND MGA_RUNTIME_SRCS
@@ -397,10 +409,12 @@ if(BUILD_TESTING)
   add_executable(mga_input_config_tests EXCLUDE_FROM_ALL
     ${PSP_RECOMP_DIR}/tools/tests/input_config_test.c
     ${RT}/input_config.c
-    ${RT}/settings_path.c)
+    ${RT}/settings_path.c
+    ${RT}/platform.c)
   target_include_directories(mga_input_config_tests PRIVATE "${RT}")
   target_compile_definitions(mga_input_config_tests PRIVATE
-    _CRT_SECURE_NO_WARNINGS)
+    _CRT_SECURE_NO_WARNINGS
+    SR_ENABLE_KZL_TWIN_STICK=1)
   target_compile_options(mga_input_config_tests PRIVATE ${MGA_FP_FLAGS})
   if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
     target_compile_options(mga_input_config_tests PRIVATE /W3)
@@ -412,7 +426,9 @@ if(BUILD_TESTING)
   add_executable(mga_graphics_config_tests EXCLUDE_FROM_ALL
     ${PSP_RECOMP_DIR}/tools/tests/graphics_config_test.c
     ${RT}/graphics_config.c
-    ${RT}/settings_path.c)
+    ${RT}/graphics_auto.c
+    ${RT}/settings_path.c
+    ${RT}/platform.c)
   target_include_directories(mga_graphics_config_tests PRIVATE "${RT}")
   target_compile_definitions(mga_graphics_config_tests PRIVATE
     _CRT_SECURE_NO_WARNINGS)
@@ -444,7 +460,9 @@ if(BUILD_TESTING)
     ${PSP_RECOMP_DIR}/src/ref/interp.cpp
     ${RT}/vfpu_interp.c
     ${RT}/vfpu_asin.c
-    ${RT}/settings_path.c)
+    ${RT}/settings_path.c
+    ${RT}/platform.c
+    ${RT}/perf_stats.c)
   target_include_directories(mga_interp_tests PRIVATE
     "${RT}" "${PSP_RECOMP_DIR}/src/ref")
   target_compile_definitions(mga_interp_tests PRIVATE

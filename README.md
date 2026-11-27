@@ -37,7 +37,8 @@ git clone --recurse-submodules `
 ```
 
 The parent tracks the maintained `Tzeentchnet/psp-recomp` `main` branch and
-pins commit `9b45870` (tested fork commit `138c2b8` plus local runtime work).
+pins commit `20c15cf` (current `main`, with the SMAA, performance-stats and
+cross-platform runtime work, plus Windows build and test fixes).
 The legacy `kzl` branch remains available for compatibility.
 
 ## Documentation
